@@ -19,9 +19,28 @@
     ...(isPut ? {} : { 'X-Bin-Meta': 'false' })
   });
 
+  const FETCH_TIMEOUT_MS = 15000;
+
+  async function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
+    const ctrl = new AbortController();
+    const id = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: ctrl.signal });
+      clearTimeout(id);
+      return res;
+    } catch (e) {
+      clearTimeout(id);
+      if (e.name === 'AbortError') throw new Error('Tempo esgotado. Verifique sua conexão e se o BIN_ID está correto.');
+      throw e;
+    }
+  }
+
   async function apiGet() {
-    const res = await fetch(binUrl(), { headers: headers(false) });
-    if (!res.ok) throw new Error('Falha ao carregar dados');
+    const res = await fetchWithTimeout(binUrl(), { headers: headers(false) });
+    if (!res.ok) {
+      if (res.status === 404) throw new Error('Bin não encontrado. Verifique o BIN_ID ou crie o bin no JSONBin.io.');
+      throw new Error('Falha ao carregar dados');
+    }
     const data = await res.json();
     return data.record || { config: {}, records: [] };
   }
@@ -343,7 +362,13 @@
         renderLogin(data);
       }
     } catch (err) {
-      document.getElementById('screen-error').querySelector('p').textContent = err.message || 'Erro ao carregar.';
+      const msg = err.message || '';
+      const friendly = msg.includes('Tempo esgotado') || msg.includes('Bin não encontrado')
+        ? msg
+        : (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network')
+          ? 'Não foi possível conectar ao servidor. Verifique a conexão e se o bin existe no JSONBin.io.'
+          : msg || 'Erro ao carregar.');
+      document.getElementById('screen-error').querySelector('p').textContent = friendly;
       showScreen('error');
     } finally {
       if (loading) loading.classList.remove('active');

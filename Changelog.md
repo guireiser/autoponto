@@ -2,6 +2,14 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.1] - 2026-03-17
+
+### Corrigido
+
+- Página travando em "Carregando…" no GitHub Pages: ordem dos scripts alterada para carregar `config.js` antes de `config.local.js` (evita 404 do config.local em produção).
+- Timeout de 15s na requisição GET ao JSONBin: em caso de demora ou falha de rede, exibe tela de erro em vez de ficar travado.
+- Mensagens de erro mais claras: bin não encontrado (404), tempo esgotado e falha de conexão/rede.
+
 ## [1.0.0] - 2025-03-17
 
 ### Adicionado

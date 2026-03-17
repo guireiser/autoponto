@@ -119,7 +119,7 @@ Como o GitHub Pages só serve arquivos estáticos, não há um endpoint POST no 
    ```bash
    python -m http.server 8080
    ```
-   Acesse `http://localhost:8080`. A página carrega primeiro `config.local.js` (se existir) e depois `config.js`; localmente você usa apenas `config.local.js` e não versiona `config.js` (está no `.gitignore`).
+   Acesse `http://localhost:8080`. A página carrega primeiro `config.js` e depois `config.local.js` (se existir); localmente você usa `config.local.js` e não versiona `config.js` (está no `.gitignore`). Se a página ficar em "Carregando…" no GitHub Pages, verifique se o bin existe no JSONBin.io com o BIN_ID dos Secrets e se o corpo inicial é `{ "config": {}, "records": [] }`; em falha de rede ou timeout a página exibe mensagem de erro após alguns segundos.
 
 ---
 
