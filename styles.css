@@ -1,0 +1,294 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #1a1a1a;
+  background: #f5f5f5;
+}
+
+.screen {
+  display: none;
+  min-height: 100vh;
+  padding: 1.5rem;
+}
+.screen.active {
+  display: block;
+}
+
+#screen-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#screen-loading.active {
+  display: flex;
+}
+
+#screen-login,
+#screen-error {
+  max-width: 24rem;
+  margin: 0 auto;
+  padding-top: 3rem;
+}
+#screen-login h1,
+#screen-error h1 {
+  margin-top: 0;
+}
+.error {
+  color: #c00;
+  margin-top: 0.5rem;
+}
+
+#screen-login form,
+#modal-edit form,
+#modal-add form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+#screen-login label,
+#modal-edit label,
+#modal-add label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+#screen-login input[type="password"],
+#screen-login input[type="text"],
+#modal-edit input,
+#modal-add input,
+#modal-edit select,
+#modal-add select {
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+#screen-login button,
+#modal-edit button[type="submit"],
+#modal-add button[type="submit"] {
+  padding: 0.6rem 1rem;
+  font-size: 1rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+#screen-login button:hover,
+#modal-edit button[type="submit"]:hover,
+#modal-add button[type="submit"]:hover {
+  background: #1d4ed8;
+}
+
+/* App: calendar */
+#screen-app {
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.calendar-nav button {
+  padding: 0.5rem 1rem;
+  font-size: 1.25rem;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.calendar-nav button:hover {
+  background: #eee;
+}
+.calendar-title {
+  font-weight: 600;
+  font-size: 1.25rem;
+  text-transform: capitalize;
+  min-width: 200px;
+  text-align: center;
+}
+.btn-logout {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-logout:hover {
+  background: #fee;
+  border-color: #c00;
+}
+#screen-app {
+  position: relative;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
+  text-align: center;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.calendar-day {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 0.5rem;
+  min-height: 100px;
+}
+.calendar-day.empty {
+  background: #fafafa;
+  border-color: transparent;
+}
+.calendar-day.today {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+.day-number {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+.day-hours {
+  font-size: 0.8rem;
+  color: #059669;
+  margin-bottom: 0.5rem;
+}
+.day-records {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.8rem;
+}
+.day-records li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.day-records li:last-child {
+  border-bottom: none;
+}
+.record-type {
+  font-weight: 700;
+  min-width: 1.2em;
+}
+.record-entrada .record-type { color: #059669; }
+.record-saída .record-type { color: #dc2626; }
+.record-time {
+  flex: 1;
+}
+.btn-edit,
+.btn-delete {
+  padding: 2px 6px;
+  font-size: 0.85rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+  line-height: 1;
+}
+.btn-edit:hover {
+  background: #e0e7ff;
+}
+.btn-delete:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.btn-add-point {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.35rem;
+  font-size: 0.75rem;
+  background: #f0f0f0;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.btn-add-point:hover {
+  background: #e5e5e5;
+}
+
+/* Modals */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+.modal.active {
+  display: flex;
+}
+.modal-content {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 360px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+.modal-content h2 {
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
+}
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.25rem;
+  font-size: 1.5rem;
+  line-height: 1;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #666;
+}
+.modal-close:hover {
+  color: #1a1a1a;
+}
+
+@media (max-width: 640px) {
+  .calendar-day {
+    min-height: 80px;
+    padding: 0.35rem;
+  }
+  .day-records li {
+    flex-wrap: wrap;
+  }
+  .btn-edit, .btn-delete {
+    margin-left: auto;
+  }
+}

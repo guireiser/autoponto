@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Controle de Ponto</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="screen-loading" class="screen active" aria-live="polite">
+    <p>Carregando…</p>
+  </div>
+
+  <div id="screen-login" class="screen">
+    <!-- Preenchido por app.js: form login ou definir senha -->
+  </div>
+
+  <div id="screen-app" class="screen">
+    <main id="calendar-container">
+      <!-- Preenchido por app.js -->
+    </main>
+  </div>
+
+  <div id="screen-error" class="screen">
+    <p>Erro ao carregar os dados.</p>
+  </div>
+
+  <div id="modal-edit" class="modal" role="dialog" aria-labelledby="modal-edit-title" aria-modal="true">
+    <div class="modal-content">
+      <h2 id="modal-edit-title">Editar registro</h2>
+      <button type="button" class="modal-close" aria-label="Fechar">×</button>
+      <form id="form-edit">
+        <label>Tipo
+          <select id="edit-type">
+            <option value="entrada">Entrada</option>
+            <option value="saída">Saída</option>
+          </select>
+        </label>
+        <label>Data e hora
+          <input type="datetime-local" id="edit-datetime" required>
+        </label>
+        <button type="submit">Salvar</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="modal-add" class="modal" role="dialog" aria-labelledby="modal-add-title" aria-modal="true">
+    <div class="modal-content">
+      <h2 id="modal-add-title">Adicionar ponto</h2>
+      <button type="button" class="modal-close" aria-label="Fechar">×</button>
+      <form id="form-add">
+        <label>Tipo
+          <select id="add-type">
+            <option value="entrada">Entrada</option>
+            <option value="saída">Saída</option>
+          </select>
+        </label>
+        <label>Data e hora
+          <input type="datetime-local" id="add-datetime" required>
+        </label>
+        <button type="submit">Adicionar</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="config.local.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

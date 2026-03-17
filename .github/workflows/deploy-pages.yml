@@ -1,0 +1,55 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate config.js
+        env:
+          JSONBIN_BIN_ID: ${{ secrets.JSONBIN_BIN_ID }}
+          JSONBIN_MASTER_KEY: ${{ secrets.JSONBIN_MASTER_KEY }}
+        run: |
+          node -e "
+          const fs = require('fs');
+          const t = fs.readFileSync('config.template.js', 'utf8');
+          const out = t
+            .replace('{{BIN_ID}}', process.env.JSONBIN_BIN_ID || '')
+            .replace('{{API_KEY}}', process.env.JSONBIN_MASTER_KEY || '');
+          fs.writeFileSync('config.js', out);
+          "
+
+      - name: Prepare site directory
+        run: |
+          mkdir -p site
+          cp index.html app.js config.js styles.css config.json site/
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: github.pages
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
