@@ -2,6 +2,12 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.4] - 2026-03-17
+
+### Corrigido
+
+- Compatibilidade de JavaScript melhorada: removido uso de optional chaining (`?.`) na inicialização dos eventos, evitando erro de parsing em navegadores mais antigos que deixava a tela presa em "Carregando…".
+
 ## [1.0.3] - 2026-03-17
 
 ### Corrigido

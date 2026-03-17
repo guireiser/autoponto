@@ -334,10 +334,20 @@
     await apiPut(body);
   }
 
-  document.getElementById('form-edit')?.addEventListener('submit', saveEdit);
-  document.getElementById('form-add')?.addEventListener('submit', saveAdd);
-  document.getElementById('modal-edit')?.querySelector('.modal-close')?.addEventListener('click', closeModals);
-  document.getElementById('modal-add')?.querySelector('.modal-close')?.addEventListener('click', closeModals);
+  var formEdit = document.getElementById('form-edit');
+  if (formEdit) formEdit.addEventListener('submit', saveEdit);
+  var formAdd = document.getElementById('form-add');
+  if (formAdd) formAdd.addEventListener('submit', saveAdd);
+  var modalEditClose = document.getElementById('modal-edit');
+  if (modalEditClose) {
+    modalEditClose = modalEditClose.querySelector('.modal-close');
+    if (modalEditClose) modalEditClose.addEventListener('click', closeModals);
+  }
+  var modalAddClose = document.getElementById('modal-add');
+  if (modalAddClose) {
+    modalAddClose = modalAddClose.querySelector('.modal-close');
+    if (modalAddClose) modalAddClose.addEventListener('click', closeModals);
+  }
 
   function showError(message) {
     const errEl = document.getElementById('screen-error');
