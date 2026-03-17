@@ -2,6 +2,12 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.5] - 2026-03-17
+
+### Corrigido
+
+- Mensagem "Carregando…" deixou de ficar visível por cima do calendário: `#screen-loading` agora usa `display: none` por padrão e só `display: flex` quando tem a classe `.active`, evitando que a regra por ID sobrescreva o ocultamento da tela.
+
 ## [1.0.4] - 2026-03-17
 
 ### Corrigido
