@@ -2,6 +2,20 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.3] - 2026-03-17
+
+### Corrigido
+
+- Em produção (GitHub Pages) o `config.local.js` não é mais solicitado: carregamento condicional por hostname (`github.io`), eliminando o 404 e a mensagem no console "Falha no carregamento do script config.local.js".
+
+## [1.0.2] - 2026-03-17
+
+### Corrigido
+
+- Failsafe de 16s: se a página continuar em "Carregando…", após 16 segundos a tela de erro é exibida automaticamente, evitando travamento.
+- Timeout do GET ao JSONBin feito com `Promise.race` (12s) em vez de AbortController, para maior compatibilidade.
+- Função `showError` centralizada e try/catch em volta de `init()` para erros síncronos.
+
 ## [1.0.1] - 2026-03-17
 
 ### Corrigido

@@ -64,7 +64,23 @@
   </div>
 
   <script src="config.js"></script>
-  <script src="config.local.js"></script>
-  <script src="app.js"></script>
+  <script>
+    (function () {
+      var isGitHubPages = (window.location.hostname || '').indexOf('github.io') !== -1;
+      function loadApp() {
+        var s = document.createElement('script');
+        s.src = 'app.js';
+        document.body.appendChild(s);
+      }
+      if (isGitHubPages) {
+        loadApp();
+      } else {
+        var local = document.createElement('script');
+        local.src = 'config.local.js';
+        local.onload = local.onerror = loadApp;
+        document.body.appendChild(local);
+      }
+    })();
+  </script>
 </body>
 </html>

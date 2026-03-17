@@ -19,24 +19,17 @@
     ...(isPut ? {} : { 'X-Bin-Meta': 'false' })
   });
 
-  const FETCH_TIMEOUT_MS = 15000;
+  const FETCH_TIMEOUT_MS = 12000;
 
-  async function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
-    const ctrl = new AbortController();
-    const id = setTimeout(() => ctrl.abort(), timeoutMs);
-    try {
-      const res = await fetch(url, { ...options, signal: ctrl.signal });
-      clearTimeout(id);
-      return res;
-    } catch (e) {
-      clearTimeout(id);
-      if (e.name === 'AbortError') throw new Error('Tempo esgotado. Verifique sua conexão e se o BIN_ID está correto.');
-      throw e;
-    }
+  function timeoutPromise(ms) {
+    return new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Tempo esgotado. Verifique sua conexão e se o BIN_ID está correto.')), ms)
+    );
   }
 
   async function apiGet() {
-    const res = await fetchWithTimeout(binUrl(), { headers: headers(false) });
+    const fetchPromise = fetch(binUrl(), { headers: headers(false) });
+    const res = await Promise.race([fetchPromise, timeoutPromise(FETCH_TIMEOUT_MS)]);
     if (!res.ok) {
       if (res.status === 404) throw new Error('Bin não encontrado. Verifique o BIN_ID ou crie o bin no JSONBin.io.');
       throw new Error('Falha ao carregar dados');
@@ -346,12 +339,29 @@
   document.getElementById('modal-edit')?.querySelector('.modal-close')?.addEventListener('click', closeModals);
   document.getElementById('modal-add')?.querySelector('.modal-close')?.addEventListener('click', closeModals);
 
+  function showError(message) {
+    const errEl = document.getElementById('screen-error');
+    if (errEl) {
+      const p = errEl.querySelector('p');
+      if (p) p.textContent = message;
+      showScreen('error');
+    }
+  }
+
   async function init() {
     const loading = document.getElementById('screen-loading');
+    const FAILSAFE_MS = 16000;
+    let done = false;
+    const failsafeId = setTimeout(function () {
+      if (done) return;
+      done = true;
+      showError('O carregamento demorou demais. Verifique sua conexão, o BIN_ID nos Secrets do GitHub e se o bin existe no JSONBin.io.');
+    }, FAILSAFE_MS);
     if (loading) loading.classList.add('active');
     showScreen('loading');
     try {
       const data = await apiGet();
+      if (done) return;
       state.config = data.config || {};
       state.records = data.records || [];
       if (isLoggedIn()) {
@@ -362,18 +372,26 @@
         renderLogin(data);
       }
     } catch (err) {
+      if (done) return;
       const msg = err.message || '';
       const friendly = msg.includes('Tempo esgotado') || msg.includes('Bin não encontrado')
         ? msg
         : (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network')
           ? 'Não foi possível conectar ao servidor. Verifique a conexão e se o bin existe no JSONBin.io.'
           : msg || 'Erro ao carregar.');
-      document.getElementById('screen-error').querySelector('p').textContent = friendly;
-      showScreen('error');
+      showError(friendly);
     } finally {
+      done = true;
+      clearTimeout(failsafeId);
       if (loading) loading.classList.remove('active');
     }
   }
 
-  init();
+  try {
+    init();
+  } catch (e) {
+    var errEl = document.getElementById('screen-error');
+    if (errEl && errEl.querySelector('p')) errEl.querySelector('p').textContent = (e && e.message) || 'Erro ao iniciar.';
+    showScreen('error');
+  }
 })();

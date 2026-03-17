@@ -10,7 +10,7 @@ Contexto para agentes e contribuidores.
 
 ## Onde está o quê
 
-- **Configuração injetada no deploy:** `config.template.js` (versionado, com placeholders). O arquivo `config.js` é gerado no workflow e não é versionado (está no `.gitignore`). Em desenvolvimento local usa-se `config.local.js` (copiar do template e preencher; também no `.gitignore`). No `index.html`, `config.js` é carregado antes de `config.local.js` para que em produção o primeiro script exista e não haja 404 antes do app rodar.
+- **Configuração injetada no deploy:** `config.template.js` (versionado, com placeholders). O arquivo `config.js` é gerado no workflow e não é versionado (está no `.gitignore`). Em desenvolvimento local usa-se `config.local.js` (copiar do template e preencher; também no `.gitignore`). No `index.html`, `config.js` é carregado primeiro; um script inline verifica se o host é `github.io` (produção): em produção carrega só `app.js` (não solicita `config.local.js`, evitando 404 no console). Em desenvolvimento local carrega `config.local.js` e em seguida `app.js`.
 - **“API” de registro de ponto:** não existe endpoint no projeto. O Shortcut no iPhone faz GET no bin, adiciona um item em `records` e faz PUT de volta (documentado no README).
 - **Lógica da aplicação:** `app.js` — lê `window.APP_CONFIG` (BIN_ID, API_KEY), chama JSONBin (GET/PUT) com timeout de 15s no GET para evitar tela travada em “Carregando…”, gerencia login/senha (`config.password` no bin, sessionStorage para “logado”), renderiza o calendário e os modais de edição/adição, calcula horas por dia (pares entrada/saída em ordem cronológica), e persiste com PUT ao editar/adicionar/excluir.
 - **Versão do app:** `config.json` → campo `version` (usado para Changelog e referência).
