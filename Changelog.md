@@ -2,6 +2,12 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.7] - 2026-03-17
+
+### Corrigido
+
+- Resposta do GET ao JSONBin com `X-Bin-Meta: false`: quando a API devolve o conteúdo do bin direto (sem wrapper `record`), o app passa a usar esse objeto como config/records, evitando mostrar sempre "Primeira vez: defina uma senha" mesmo com senha já salva no bin.
+
 ## [1.0.6] - 2026-03-17
 
 ### Corrigido

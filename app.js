@@ -35,7 +35,9 @@
       throw new Error('Falha ao carregar dados');
     }
     const data = await res.json();
-    return data.record || { config: {}, records: [] };
+    if (data.record != null) return data.record;
+    if (data && (typeof data.config !== 'undefined' || typeof data.records !== 'undefined')) return data;
+    return { config: {}, records: [] };
   }
 
   async function apiPut(body) {
