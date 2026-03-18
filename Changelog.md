@@ -2,6 +2,14 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.10] - 2026-03-17
+
+### Corrigido
+
+- Agrupamento de registros por dia ajustado para usar **data local** (fuso do navegador), em vez de `YYYY-MM-DD` direto do ISO UTC. Isso corrige casos em que entrada/saída apareciam no dia errado e o total ficava "—".
+- Edição de ponto com `datetime-local` ajustada para preencher com data/hora local (sem deslocamento por timezone).
+- Ordenação e renderização dos registros ficaram mais robustas para datas inválidas e tipos de ponto normalizados (`entrada`, `saída`, `saida`).
+
 ## [1.0.9] - 2026-03-17
 
 ### Corrigido

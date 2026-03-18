@@ -50,16 +50,36 @@
     return res.json();
   }
 
-  function sortRecords(records) {
-    return [...(records || [])].sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+  function pad2(n) {
+    return String(n).padStart(2, '0');
   }
 
-  function getRecordsByDate(records, dateStr) {
-    return sortRecords(records).filter(r => r.datetime && r.datetime.startsWith(dateStr));
+  function toLocalDateKey(value) {
+    const d = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(d.getTime())) {
+      if (typeof value === 'string' && value.length >= 10) return value.slice(0, 10);
+      return '';
+    }
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  }
+
+  function sortRecords(records) {
+    return [...(records || [])].sort((a, b) => {
+      const ta = new Date(a.datetime).getTime();
+      const tb = new Date(b.datetime).getTime();
+      if (Number.isNaN(ta) && Number.isNaN(tb)) return 0;
+      if (Number.isNaN(ta)) return 1;
+      if (Number.isNaN(tb)) return -1;
+      return ta - tb;
+    });
+  }
+
+  function getRecordsByDate(records, dayKey) {
+    return sortRecords(records).filter(r => r.datetime && toLocalDateKey(r.datetime) === dayKey);
   }
 
   function dateStr(d) {
-    return d.toISOString().slice(0, 10);
+    return toLocalDateKey(d);
   }
 
   function formatTime(iso) {
@@ -68,7 +88,8 @@
 
   function formatDateForInput(iso) {
     const d = new Date(iso);
-    return d.toISOString().slice(0, 16);
+    if (Number.isNaN(d.getTime())) return '';
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
   }
 
   function normalizeType(type) {
@@ -230,13 +251,16 @@
       grid += `<div class="calendar-day ${isToday ? 'today' : ''}" data-date="${dateStrLocal}">
         <div class="day-number">${d}</div>
         <div class="day-total"><span class="day-total-label">Total:</span> <span class="day-hours">${minutes > 0 ? formatMinutes(minutes) : '—'}</span></div>
-        <ul class="day-records">${dayRecords.map(r => `
-          <li data-id="${r.id || r.datetime}" class="record-${r.type}">
-            <span class="record-type">${r.type === 'entrada' ? 'E' : 'S'}</span>
+        <ul class="day-records">${dayRecords.map(r => {
+          const type = normalizeType(r.type);
+          return `
+          <li data-id="${r.id || r.datetime}" class="record-${type}">
+            <span class="record-type">${type === 'entrada' ? 'E' : 'S'}</span>
             <span class="record-time">${formatTime(r.datetime)}</span>
             <button type="button" class="btn-edit" data-id="${r.id || r.datetime}" aria-label="Editar">✎</button>
             <button type="button" class="btn-delete" data-id="${r.id || r.datetime}" aria-label="Excluir">×</button>
-          </li>`).join('')}</ul>
+          </li>`;
+        }).join('')}</ul>
         <button type="button" class="btn-add-point" data-date="${dateStrLocal}">+ Ponto</button>
       </div>`;
     }
@@ -297,7 +321,7 @@
     state.editingId = getRecordId(record);
     const modal = document.getElementById('modal-edit');
     if (!modal) return;
-    document.getElementById('edit-type').value = record.type;
+    document.getElementById('edit-type').value = normalizeType(record.type);
     document.getElementById('edit-datetime').value = formatDateForInput(record.datetime);
     document.getElementById('edit-datetime').focus();
     modal.classList.add('active');
