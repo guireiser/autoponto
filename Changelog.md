@@ -2,6 +2,13 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.9] - 2026-03-17
+
+### Corrigido
+
+- Total do dia não era calculado quando havia um par entrada/saída com tipo "saida" (sem acento): passamos a normalizar o tipo (`saida`/`saída` → `saída`).
+- Total do dia também não era calculado quando a saída vinha antes da entrada no mesmo dia (ex.: S 21:06 e E 09:00): para um único par entrada+saída no dia, o total passa a ser a diferença entre o horário da saída e o da entrada, independente da ordem.
+
 ## [1.0.8] - 2026-03-17
 
 ### Adicionado

@@ -71,15 +71,33 @@
     return d.toISOString().slice(0, 16);
   }
 
+  function normalizeType(type) {
+    if (!type || typeof type !== 'string') return type;
+    const t = type.trim().toLowerCase();
+    if (t === 'saida' || t === 'saída') return 'saída';
+    if (t === 'entrada') return 'entrada';
+    return type;
+  }
+
   function minutesWorkedInDay(dayRecords) {
     const sorted = sortRecords(dayRecords);
     let totalMs = 0;
     let lastEntrada = null;
     for (const r of sorted) {
-      if (r.type === 'entrada') lastEntrada = new Date(r.datetime).getTime();
-      else if (r.type === 'saída' && lastEntrada !== null) {
+      const type = normalizeType(r.type);
+      if (type === 'entrada') lastEntrada = new Date(r.datetime).getTime();
+      else if (type === 'saída' && lastEntrada !== null) {
         totalMs += new Date(r.datetime).getTime() - lastEntrada;
         lastEntrada = null;
+      }
+    }
+    if (totalMs === 0 && sorted.length >= 2) {
+      const entradas = sorted.filter(r => normalizeType(r.type) === 'entrada').map(r => new Date(r.datetime).getTime());
+      const saidas = sorted.filter(r => normalizeType(r.type) === 'saída').map(r => new Date(r.datetime).getTime());
+      if (entradas.length === 1 && saidas.length === 1) {
+        const tE = entradas[0];
+        const tS = saidas[0];
+        if (tS > tE) totalMs = tS - tE;
       }
     }
     return Math.round(totalMs / 60000);
