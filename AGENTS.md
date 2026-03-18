@@ -18,7 +18,7 @@ Contexto para agentes e contribuidores.
 ## Fluxo de dados
 
 1. **Carregamento:** `app.js` faz GET no bin; se existir `config.password`, exibe tela de login; senão, tela “Definir senha”. Após login, guarda “logado” em localStorage e mostra o calendário.
-2. **Calendário:** registros em `state.records`; filtrados por data, ordenados por `datetime`; horas por dia = soma dos intervalos entre cada “entrada” e a próxima “saída” no mesmo dia.
+2. **Calendário:** registros em `state.records`; filtrados por data, ordenados por `datetime`; horas por dia = soma dos intervalos entre cada “entrada” e a próxima “saída” no mesmo dia; cada dia exibe “Total: Xh Ymin” e a nav exibe “Total do mês”. Ao clicar “+ Ponto” em um dia, o modal de adicionar abre com a data daquele dia e 08:00.
 3. **Alterações (editar/excluir/adicionar):** atualiza `state.records` (e `state.config` quando aplicável) e chama `apiPut({ config: state.config, records: state.records })`.
 
 ## Regras do projeto

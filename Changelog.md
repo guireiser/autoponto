@@ -2,6 +2,17 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.8] - 2026-03-17
+
+### Adicionado
+
+- Total de horas trabalhadas por dia exibido com rótulo "Total:" em cada célula do calendário.
+- Total do mês na barra de navegação do calendário ("Total do mês: Xh Ymin").
+
+### Alterado
+
+- Ao clicar em "+ Ponto" de um dia, o campo data/hora do modal passa a vir preenchido com a **data daquele dia** e horário padrão 08:00, em vez da data/hora atual.
+
 ## [1.0.7] - 2026-03-17
 
 ### Corrigido

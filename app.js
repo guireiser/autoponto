@@ -199,25 +199,19 @@
     const start = firstDay.getDay();
     const daysInMonth = lastDay.getDate();
 
-    let nav = `
-      <nav class="calendar-nav">
-        <button type="button" id="btn-prev-month" aria-label="Mês anterior">‹</button>
-        <span class="calendar-title">${firstDay.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
-        <button type="button" id="btn-next-month" aria-label="Próximo mês">›</button>
-      </nav>
-      <button type="button" id="btn-logout" class="btn-logout">Sair</button>
-    `;
     const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     let grid = '<div class="calendar-weekdays">' + weekDays.map(d => `<span>${d}</span>`).join('') + '</div><div class="calendar-grid">';
     for (let i = 0; i < start; i++) grid += '<div class="calendar-day empty"></div>';
+    let totalMonthMinutes = 0;
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStrLocal = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const dayRecords = getRecordsByDate(state.records, dateStrLocal);
       const minutes = minutesWorkedInDay(dayRecords);
+      totalMonthMinutes += minutes;
       const isToday = dateStrLocal === dateStr(new Date());
       grid += `<div class="calendar-day ${isToday ? 'today' : ''}" data-date="${dateStrLocal}">
         <div class="day-number">${d}</div>
-        <div class="day-hours">${minutes > 0 ? formatMinutes(minutes) : '—'}</div>
+        <div class="day-total"><span class="day-total-label">Total:</span> <span class="day-hours">${minutes > 0 ? formatMinutes(minutes) : '—'}</span></div>
         <ul class="day-records">${dayRecords.map(r => `
           <li data-id="${r.id || r.datetime}" class="record-${r.type}">
             <span class="record-type">${r.type === 'entrada' ? 'E' : 'S'}</span>
@@ -229,6 +223,16 @@
       </div>`;
     }
     grid += '</div>';
+    const monthTotalStr = totalMonthMinutes > 0 ? formatMinutes(totalMonthMinutes) : '—';
+    const nav = `
+      <nav class="calendar-nav">
+        <button type="button" id="btn-prev-month" aria-label="Mês anterior">‹</button>
+        <span class="calendar-title">${firstDay.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
+        <button type="button" id="btn-next-month" aria-label="Próximo mês">›</button>
+        <span class="calendar-month-total" aria-label="Total de horas no mês">Total do mês: ${monthTotalStr}</span>
+      </nav>
+      <button type="button" id="btn-logout" class="btn-logout">Sair</button>
+    `;
     container.innerHTML = nav + grid;
 
     document.getElementById('btn-prev-month').onclick = () => {
@@ -285,10 +289,8 @@
     state.addingForDate = dateStrLocal;
     const modal = document.getElementById('modal-add');
     if (!modal) return;
-    const now = new Date();
-    const datePart = dateStrLocal + 'T';
     document.getElementById('add-type').value = 'entrada';
-    document.getElementById('add-datetime').value = datePart + now.toTimeString().slice(0, 5);
+    document.getElementById('add-datetime').value = dateStrLocal + 'T08:00';
     modal.classList.add('active');
   }
 

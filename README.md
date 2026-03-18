@@ -5,8 +5,9 @@ Aplicativo estático de controle de ponto de trabalho para publicar no GitHub Pa
 ## Funcionalidades
 
 - **Calendário mensal** com registros de entrada e saída por dia
+- **Total de horas por dia** (rótulo "Total:" em cada dia) e **total do mês** na barra de navegação
 - **Cálculo de horas trabalhadas** por dia (soma dos intervalos entre cada par entrada → saída)
-- **Edição manual**: adicionar, editar horário e excluir registros
+- **Edição manual**: adicionar, editar horário e excluir registros (ao adicionar ponto em um dia, a data do dia já vem preenchida)
 - **Senha de acesso** à página (definida na primeira vez e armazenada no bin)
 - **Deploy no GitHub Pages** com API Key e Bin ID injetados por GitHub Secrets (não ficam no repositório)
 - **Shortcut no iPhone** para registrar entrada/saída direto no JSONBin (documentado abaixo)
