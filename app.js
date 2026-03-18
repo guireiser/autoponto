@@ -99,12 +99,12 @@
   };
 
   function isLoggedIn() {
-    return sessionStorage.getItem(STORAGE_KEY) === '1';
+    return localStorage.getItem(STORAGE_KEY) === '1';
   }
 
   function setLoggedIn(value) {
-    if (value) sessionStorage.setItem(STORAGE_KEY, '1');
-    else sessionStorage.removeItem(STORAGE_KEY);
+    if (value) localStorage.setItem(STORAGE_KEY, '1');
+    else localStorage.removeItem(STORAGE_KEY);
   }
 
   function showScreen(id) {

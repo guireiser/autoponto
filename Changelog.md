@@ -2,6 +2,12 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.6] - 2026-03-17
+
+### Corrigido
+
+- Login passa a persistir ao reabrir a página: estado "logado" guardado em `localStorage` em vez de `sessionStorage`, assim o acesso permanece mesmo após fechar a aba ou o navegador.
+
 ## [1.0.5] - 2026-03-17
 
 ### Corrigido
