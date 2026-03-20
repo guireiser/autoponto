@@ -2,6 +2,25 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.13] - 2026-03-20
+
+### Alterado
+
+- Documentação: URL pública do Worker em produção (`https://autoponto-punch.reiser-gui.workers.dev`) no README principal, README do worker e `AGENTS.md`.
+
+## [1.0.12] - 2026-03-20
+
+### Alterado
+
+- Documentação do atalho iOS unificada: apenas o fluxo via **Cloudflare Worker** (POST); removidos os passos do atalho direto no JSONBin (GET/PUT). README principal, `AGENTS.md` e README do worker ajustados.
+
+## [1.0.11] - 2026-03-20
+
+### Adicionado
+
+- Worker **Cloudflare** em `workers/autoponto-punch/`: endpoint **POST** com token (`Authorization: Bearer` ou `X-Autoponto-Token`) que lê o bin no JSONBin, acrescenta registro (`type` + `datetime`), ordena `records` e faz PUT — simplifica o atalho iOS e evita guardar a Master Key no telefone.
+- Documentação no README, README do worker com Wrangler/secrets, e nota de segurança sobre o token do atalho.
+
 ## [1.0.10] - 2026-03-17
 
 ### Corrigido
@@ -85,4 +104,4 @@ Alterações notáveis do projeto. A versão do app está em `config.json` (camp
 - Calendário mensal com navegação por mês/ano.
 - Por dia: lista de registros (entrada/saída) e cálculo de horas trabalhadas (soma dos intervalos entre pares entrada → saída).
 - Edição de horário e tipo, exclusão e adição manual de registros; persistência com PUT no JSONBin.
-- Documentação no README: configuração dos Secrets no GitHub e passo a passo do Shortcut no iPhone para registrar ponto direto no JSONBin.
+- Documentação no README: configuração dos Secrets no GitHub e atalho no iPhone para registro de ponto.

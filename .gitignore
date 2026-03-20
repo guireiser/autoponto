@@ -1,2 +1,5 @@
 config.js
 config.local.js
+
+# Cloudflare Wrangler (dev local do worker)
+.wrangler/

@@ -1,6 +1,6 @@
 # Autoponto
 
-Aplicativo estático de controle de ponto de trabalho para publicar no GitHub Pages. Os dados são persistidos em um bin no [JSONBin.io](https://jsonbin.io). Inclui tela de calendário com registros por dia, cálculo de horas trabalhadas (entrada/saída), senha de acesso e suporte a registro de ponto via Shortcut no iPhone.
+Aplicativo estático de controle de ponto de trabalho para publicar no GitHub Pages. Os dados são persistidos em um bin no [JSONBin.io](https://jsonbin.io). Inclui tela de calendário com registros por dia, cálculo de horas trabalhadas (entrada/saída), senha de acesso e registro de ponto pelo **Atalhos** no iPhone via **Cloudflare Worker** (POST com token).
 
 ## Funcionalidades
 
@@ -10,12 +10,13 @@ Aplicativo estático de controle de ponto de trabalho para publicar no GitHub Pa
 - **Edição manual**: adicionar, editar horário e excluir registros (ao adicionar ponto em um dia, a data do dia já vem preenchida)
 - **Senha de acesso** à página (definida na primeira vez e armazenada no bin)
 - **Deploy no GitHub Pages** com API Key e Bin ID injetados por GitHub Secrets (não ficam no repositório)
-- **Shortcut no iPhone** para registrar entrada/saída direto no JSONBin (documentado abaixo)
+- **Shortcut no iPhone** para registrar entrada/saída pelo Worker (POST; documentado abaixo)
 
 ## Pré-requisitos
 
 - Conta no [JSONBin.io](https://jsonbin.io) (plano gratuito)
 - Repositório no GitHub com GitHub Pages habilitado via **GitHub Actions**
+- Para o atalho no iPhone: conta na [Cloudflare](https://dash.cloudflare.com/) (plano gratuito) e deploy do Worker em [`workers/autoponto-punch/`](workers/autoponto-punch/) — ver [README do worker](workers/autoponto-punch/README.md)
 
 ## Configurar Secrets no GitHub
 
@@ -53,57 +54,38 @@ Após salvar os Secrets, o próximo push na branch `main` dispara o workflow: el
 
 ---
 
-## Shortcut no iPhone
+## Shortcut no iPhone (Cloudflare Worker)
 
-Como o GitHub Pages só serve arquivos estáticos, não há um endpoint POST no site. O Shortcut fala **direto com o JSONBin.io**: faz GET no bin, adiciona o registro de entrada ou saída e faz PUT de volta.
+O site no GitHub Pages não expõe POST. O app **Atalhos** envia um único **POST** ao Worker em [`workers/autoponto-punch/`](workers/autoponto-punch/): a **Master Key** do JSONBin fica só nos secrets do Worker, não no iPhone. Instalação: `npx wrangler deploy` e secrets — passo a passo no [README do worker](workers/autoponto-punch/README.md).
 
-### Passo a passo no app Atalhos
+**URL do Worker em produção (este repositório):** [`https://autoponto-punch.reiser-gui.workers.dev`](https://autoponto-punch.reiser-gui.workers.dev) — use `https://autoponto-punch.reiser-gui.workers.dev/` ou `/punch` no atalho. Em forks ou outra conta Cloudflare, o deploy próprio gera outra URL (a que o Wrangler exibir após `npx wrangler deploy`).
 
-1. **Obter horário atual em ISO**  
-   Use a ação “Data atual” e formate como texto (formato ISO, ex.: `2025-03-17T14:30:00.000Z`). No Atalhos você pode usar “Formatar data” com “ISO 8601” ou montar a string manualmente.
+**Contrato HTTP**
 
-2. **Perguntar o tipo**  
-   Use “Perguntar” com opções “Entrada” e “Saída”, ou crie dois atalhos separados (“Bater Entrada” e “Bater Saída”) e defina o tipo fixo em cada um.
+- **POST** na raiz `/` ou em `/punch` (mesmo comportamento).
+- **Cabeçalho** (um dos dois):
+  - `Authorization: Bearer <SEU_SHORTCUT_TOKEN>`
+  - ou `X-Autoponto-Token: <SEU_SHORTCUT_TOKEN>`
+- **Corpo** (JSON):
+  - `type`: `"entrada"` ou `"saída"` (também aceita `saida` sem acento)
+  - `datetime`: opcional, string ISO 8601; se omitir, o Worker usa o instante atual (UTC)
 
-3. **GET no bin**  
-   - Ação: **Obter conteúdo da URL**
-   - URL: `https://api.jsonbin.io/v3/b/<SEU_BIN_ID>/latest`
-   - Método: GET
-   - Cabeçalhos: adicione `X-Master-Key` com valor da sua Master Key (e opcionalmente `X-Bin-Meta` = `false` para não trazer metadados).
+Resposta em caso de sucesso: `{ "ok": true, "type": "...", "datetime": "..." }`.
 
-4. **Interpretar o JSON**  
-   Use “Obter valor de Dicionário” (ou “Obter dicionário de entrada”): da resposta, pegue o valor da chave `record`. Depois, de `record`, pegue as chaves `config` e `records` (a lista de registros).
+**Montar o atalho no app Atalhos**
 
-5. **Adicionar o novo registro**  
-   Crie um dicionário com:
-   - `type`: o texto “entrada” ou “saída” (conforme o passo 2)
-   - `datetime`: o horário em ISO do passo 1  
-   Adicione esse dicionário à lista `records` (use “Adicionar à lista” ou equivalente). Mantenha a lista ordenada por data se quiser (opcional; a página reordena ao exibir).
+1. (Opcional) **Data atual** → **Formatar data** → ISO 8601, se quiser enviar o horário do aparelho em vez do instante do servidor.
+2. **Dicionário** com `type` (texto fixo `entrada` ou `saída`) e, se quiser, `datetime` (resultado do passo 1).
+3. **Obter conteúdo da URL**
+   - URL: a do Worker (`/` ou `/punch`)
+   - Método: POST
+   - Cabeçalhos: `Authorization` = `Bearer ` + seu token (ou `X-Autoponto-Token`)
+   - Corpo da solicitação: **JSON** — o dicionário do passo 2
+4. **Mostrar notificação** (ex.: “Ponto registrado”).
 
-6. **Montar o corpo do PUT**  
-   Monte um dicionário com:
-   - `config`: o mesmo objeto `config` obtido no passo 4 (para não perder a senha)
-   - `records`: a lista atualizada do passo 5
+Dois atalhos separados (“Bater entrada” / “Bater saída”) com `type` fixo dispensam o passo opcional de data e qualquer pergunta.
 
-7. **PUT no bin**  
-   - Ação: **Obter conteúdo da URL**
-   - URL: `https://api.jsonbin.io/v3/b/<SEU_BIN_ID>`
-   - Método: PUT
-   - Cabeçalhos: `X-Master-Key` (sua key), `Content-Type` = `application/json`
-   - Corpo da solicitação: o dicionário do passo 6 convertido em JSON (use “Texto” ou “Mostrar resultado” do dicionário em JSON).
-
-8. **Confirmação**  
-   Use “Mostrar notificação” ou “Mostrar alerta” com texto “Entrada registrada” ou “Saída registrada” conforme o tipo.
-
-### Resumo da API usada pelo Shortcut
-
-- **GET** `https://api.jsonbin.io/v3/b/<BIN_ID>/latest`  
-  Cabeçalho: `X-Master-Key: <SUA_KEY>`  
-  Resposta: `{ "record": { "config": {...}, "records": [...] } }`
-
-- **PUT** `https://api.jsonbin.io/v3/b/<BIN_ID>`  
-  Cabeçalhos: `X-Master-Key`, `Content-Type: application/json`  
-  Corpo: `{ "config": {...}, "records": [...] }`
+**Limite:** dois registros quase simultâneos podem competir (GET → PUT no JSONBin); para uso pessoal é raro.
 
 ---
 
@@ -159,3 +141,4 @@ O bin armazena um único objeto JSON:
 - **Repositório público:** a API Key e o Bin ID não ficam no código; são injetados em tempo de deploy via GitHub Secrets.
 - **Site publicado:** o JavaScript do site ainda contém a key no front-end (quem inspecionar o site no navegador pode vê-la). A proteção dos Secrets evita que a key apareça no repositório.
 - A **senha** no bin protege apenas o acesso à interface; quem tiver a key pode ler/editar o bin diretamente pela API.
+- Com o **Worker**, quem tiver só o `SHORTCUT_TOKEN` pode **adicionar** registros (o Worker faz GET/PUT com a Master Key). Não versione esse token; troque-o se vazar. O token não substitui a senha da interface web.

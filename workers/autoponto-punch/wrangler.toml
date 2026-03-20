@@ -1,0 +1,7 @@
+# Deploy: npx wrangler deploy
+# Secrets (não versionar): npx wrangler secret put JSONBIN_BIN_ID | JSONBIN_MASTER_KEY | SHORTCUT_TOKEN
+# Produção documentada: https://autoponto-punch.reiser-gui.workers.dev
+
+name = "autoponto-punch"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
