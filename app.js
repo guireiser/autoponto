@@ -20,6 +20,8 @@
   });
 
   const FETCH_TIMEOUT_MS = 12000;
+  /** Ajuste para totais e exibição no calendário: entrada +5 min, saída −5 min (horário salvo no bin permanece o real). */
+  const PUNCH_ADJUST_MS = 5 * 60 * 1000;
 
   function timeoutPromise(ms) {
     return new Promise((_, reject) =>
@@ -100,25 +102,42 @@
     return type;
   }
 
+  function getCalculationMs(record) {
+    const raw = new Date(record.datetime).getTime();
+    if (Number.isNaN(raw)) return NaN;
+    const type = normalizeType(record.type);
+    if (type === 'entrada') return raw + PUNCH_ADJUST_MS;
+    if (type === 'saída') return raw - PUNCH_ADJUST_MS;
+    return raw;
+  }
+
+  function formatRecordTime(record) {
+    const ms = getCalculationMs(record);
+    if (Number.isNaN(ms)) return formatTime(record.datetime);
+    return new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
   function minutesWorkedInDay(dayRecords) {
     const sorted = sortRecords(dayRecords);
     let totalMs = 0;
     let lastEntrada = null;
     for (const r of sorted) {
       const type = normalizeType(r.type);
-      if (type === 'entrada') lastEntrada = new Date(r.datetime).getTime();
+      const t = getCalculationMs(r);
+      if (Number.isNaN(t)) continue;
+      if (type === 'entrada') lastEntrada = t;
       else if (type === 'saída' && lastEntrada !== null) {
-        totalMs += new Date(r.datetime).getTime() - lastEntrada;
+        totalMs += Math.max(0, t - lastEntrada);
         lastEntrada = null;
       }
     }
     if (totalMs === 0 && sorted.length >= 2) {
-      const entradas = sorted.filter(r => normalizeType(r.type) === 'entrada').map(r => new Date(r.datetime).getTime());
-      const saidas = sorted.filter(r => normalizeType(r.type) === 'saída').map(r => new Date(r.datetime).getTime());
+      const entradas = sorted.filter(r => normalizeType(r.type) === 'entrada').map(r => getCalculationMs(r));
+      const saidas = sorted.filter(r => normalizeType(r.type) === 'saída').map(r => getCalculationMs(r));
       if (entradas.length === 1 && saidas.length === 1) {
         const tE = entradas[0];
         const tS = saidas[0];
-        if (tS > tE) totalMs = tS - tE;
+        if (!Number.isNaN(tE) && !Number.isNaN(tS) && tS > tE) totalMs = tS - tE;
       }
     }
     return Math.round(totalMs / 60000);
@@ -256,7 +275,7 @@
           return `
           <li data-id="${r.id || r.datetime}" class="record-${type}">
             <span class="record-type">${type === 'entrada' ? 'E' : 'S'}</span>
-            <span class="record-time">${formatTime(r.datetime)}</span>
+            <span class="record-time">${formatRecordTime(r)}</span>
             <button type="button" class="btn-edit" data-id="${r.id || r.datetime}" aria-label="Editar">✎</button>
             <button type="button" class="btn-delete" data-id="${r.id || r.datetime}" aria-label="Excluir">×</button>
           </li>`;

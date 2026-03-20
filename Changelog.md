@@ -2,6 +2,12 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.14] - 2026-03-20
+
+### Alterado
+
+- Cálculo e exibição no calendário: **entrada** considera horário efetivo **+5 minutos** e **saída** **−5 minutos** em relação ao horário registrado (valor salvo no JSONBin permanece o horário real; edição no modal continua mostrando o registro bruto).
+
 ## [1.0.13] - 2026-03-20
 
 ### Alterado
