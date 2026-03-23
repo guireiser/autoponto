@@ -47,6 +47,26 @@ Os secrets necessários como variáveis de ambiente para criação automática d
 - `JSONBIN_BIN_ID` — ID do bin no JSONBin.io
 - `JSONBIN_MASTER_KEY` — Master Key do JSONBin.io
 
+Para criar `config.local.js` automaticamente a partir dos secrets:
+```bash
+python3 -c "
+import os
+content = \"window.APP_CONFIG = {\\n  BIN_ID: '%s',\\n  API_KEY: '%s'\\n};\\n\" % (os.environ['JSONBIN_BIN_ID'], os.environ['JSONBIN_MASTER_KEY'])
+open('config.local.js', 'w').write(content)
+"
+```
+
+### Resetar o bin (opcional)
+
+Para testes com estado limpo, resetar o bin via API:
+```bash
+curl -X PUT "https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}" \
+  -H "Content-Type: application/json" \
+  -H "X-Master-Key: ${JSONBIN_MASTER_KEY}" \
+  -d '{"config": {}, "records": []}'
+```
+Após reset, o app exibirá a tela "Primeira vez: defina uma senha".
+
 ### Lint / Testes
 
 Não há linter nem testes automatizados configurados no projeto. A validação é manual via navegador.
