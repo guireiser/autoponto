@@ -27,3 +27,30 @@ Contexto para agentes e contribuidores.
 - Ao fazer alterações relevantes, adicionar entradas no `Changelog.md` e registrar a versão conforme `config.json`.
 - Atualizar o `README.md` quando houver novos recursos ou alterações.
 - Atualizar este `AGENTS.md` quando houver mudanças de arquitetura, fluxo ou documentação para agentes.
+
+## Cursor Cloud specific instructions
+
+### Desenvolvimento local
+
+Não há dependências para instalar (sem `package.json`, sem build step). O projeto é HTML/CSS/JS vanilla puro.
+
+**Servidor local:**
+```bash
+python3 -m http.server 8080
+```
+Acessar `http://localhost:8080`. Isso é obrigatório — abrir `index.html` via `file://` causa bloqueio de CORS nas chamadas ao JSONBin.
+
+**Configuração local (`config.local.js`):**
+Copiar `config.template.js` para `config.local.js` e substituir os placeholders `{{BIN_ID}}` e `{{API_KEY}}` por valores reais do JSONBin.io. Sem isso, o app exibe "Falha ao carregar dados" (comportamento esperado). `config.local.js` está no `.gitignore`.
+
+Os secrets necessários como variáveis de ambiente para criação automática do `config.local.js`:
+- `JSONBIN_BIN_ID` — ID do bin no JSONBin.io
+- `JSONBIN_MASTER_KEY` — Master Key do JSONBin.io
+
+### Lint / Testes
+
+Não há linter nem testes automatizados configurados no projeto. A validação é manual via navegador.
+
+### Cloudflare Worker (opcional)
+
+O worker em `workers/autoponto-punch/` requer Node.js e Wrangler (`npx wrangler dev`) apenas para testar o fluxo de atalho iOS. O frontend funciona independentemente do worker.
