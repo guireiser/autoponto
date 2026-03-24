@@ -5,8 +5,8 @@ Aplicativo estático de controle de ponto de trabalho para publicar no GitHub Pa
 ## Funcionalidades
 
 - **Calendário mensal** com registros de entrada e saída por dia
-- **Total de horas por dia** (rótulo "Total:" em cada dia) e **total do mês** na barra de navegação
-- **Cálculo de horas trabalhadas** por dia (soma dos intervalos entre cada par entrada → saída), com agrupamento por data local do navegador (evita deslocamento de dia por UTC). Regra fixa: horário efetivo da **entrada** = registro **+5 min**; da **saída** = registro **−5 min** (o armazenamento segue o horário real batido ou digitado).
+- **Total de horas por dia** (rótulo "Total:" em cada dia), **total do mês** e **saldo até hoje** na barra de navegação (saldo = inicial + soma diária trabalhado − esperado a partir da data configurada; padrão: +4h56 antes de 2026-03-23; seg–qui 9h, sex 8h, fim de semana 0 — ver `config.balance` no bin)
+- **Cálculo de horas trabalhadas** por dia (soma dos intervalos entre cada par entrada → saída), com agrupamento por data local do navegador (evita deslocamento de dia por UTC). Regra fixa: horário efetivo da **entrada** = registro **+2 min**; da **saída** = registro **−2 min** (o armazenamento segue o horário real batido ou digitado).
 - **Edição manual**: adicionar, editar horário e excluir registros (ao adicionar ponto em um dia, a data do dia já vem preenchida)
 - **Senha de acesso** à página (definida na primeira vez e armazenada no bin)
 - **Deploy no GitHub Pages** com API Key e Bin ID injetados por GitHub Secrets (não ficam no repositório)
@@ -113,7 +113,13 @@ O bin armazena um único objeto JSON:
 ```json
 {
   "config": {
-    "password": "<hash da senha em SHA-256 ou texto, definido na primeira vez>"
+    "password": "<hash da senha em SHA-256 ou texto, definido na primeira vez>",
+    "balance": {
+      "startDate": "2026-03-23",
+      "initialBalanceMinutes": 296,
+      "weekdayMinutes": 540,
+      "fridayMinutes": 480
+    }
   },
   "records": [
     { "type": "entrada", "datetime": "2025-03-17T08:00:00.000Z" },
@@ -123,6 +129,7 @@ O bin armazena um único objeto JSON:
 ```
 
 - **config.password**: definido na primeira vez que você acessa a página; usado para exibir a tela de login nas próximas vezes.
+- **config.balance** (opcional): `startDate` (`YYYY-MM-DD`, primeiro dia incluso na soma trabalhado − esperado), `initialBalanceMinutes` (saldo antes desse dia), `weekdayMinutes` (meta seg–qui), `fridayMinutes` (meta sexta). Se omitido, o app usa os defaults do código (equivalente ao exemplo acima). Feriados não entram na v1.
 - **records**: lista de registros de ponto; cada item tem `type` (`"entrada"` ou `"saída"`) e `datetime` (ISO 8601). A página ordena por `datetime` e calcula as horas por dia somando os intervalos entre cada par entrada → saída.
 
 ---

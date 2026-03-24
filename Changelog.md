@@ -2,6 +2,18 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.16] - 2026-03-24
+
+### Adicionado
+
+- **Saldo de horas** na barra do calendário (cumulativo até hoje): saldo inicial **+4h56** antes de **2026-03-23**; a partir dessa data, soma **(trabalhado − esperado)** por dia na **data local**, com meta **9h** de segunda a quinta, **8h** na sexta e **0** no fim de semana. Parâmetros em `config.balance` no JSONBin (valores padrão aplicados se ausentes; normalizados ao salvar).
+
+## [1.0.15] - 2026-03-24
+
+### Alterado
+
+- Ajuste de horário efetivo no calendário e nos totais: **entrada +2 minutos** e **saída −2 minutos** (antes +5/−5). O valor armazenado no JSONBin continua sendo o horário real.
+
 ## [1.0.14] - 2026-03-20
 
 ### Alterado

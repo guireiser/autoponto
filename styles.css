@@ -98,6 +98,7 @@ body {
 
 .calendar-nav {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 1rem;
@@ -121,11 +122,25 @@ body {
   min-width: 200px;
   text-align: center;
 }
+.calendar-nav-totals {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1rem;
+  margin-left: 0.5rem;
+}
+.calendar-balance {
+  font-size: 0.95rem;
+  color: #1e40af;
+  font-weight: 600;
+  white-space: nowrap;
+}
 .calendar-month-total {
   font-size: 0.95rem;
   color: #059669;
   font-weight: 600;
-  margin-left: 0.5rem;
+  white-space: nowrap;
 }
 .btn-logout {
   position: absolute;

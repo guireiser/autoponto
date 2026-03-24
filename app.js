@@ -20,8 +20,8 @@
   });
 
   const FETCH_TIMEOUT_MS = 12000;
-  /** Ajuste para totais e exibição no calendário: entrada +5 min, saída −5 min (horário salvo no bin permanece o real). */
-  const PUNCH_ADJUST_MS = 5 * 60 * 1000;
+  /** Ajuste para totais e exibição no calendário: entrada +2 min, saída −2 min (horário salvo no bin permanece o real). */
+  const PUNCH_ADJUST_MS = 2 * 60 * 1000;
 
   function timeoutPromise(ms) {
     return new Promise((_, reject) =>
@@ -149,6 +149,96 @@
     return `${h}h ${min}min`;
   }
 
+  var BALANCE_DEFAULTS = {
+    startDate: '2026-03-23',
+    initialBalanceMinutes: 296,
+    weekdayMinutes: 540,
+    fridayMinutes: 480
+  };
+
+  function parseLocalDateKey(key) {
+    if (!key || typeof key !== 'string') return null;
+    var parts = key.split('-');
+    if (parts.length !== 3) return null;
+    var y = parseInt(parts[0], 10);
+    var mo = parseInt(parts[1], 10) - 1;
+    var da = parseInt(parts[2], 10);
+    if (isNaN(y) || isNaN(mo) || isNaN(da)) return null;
+    var d = new Date(y, mo, da);
+    if (d.getFullYear() !== y || d.getMonth() !== mo || d.getDate() !== da) return null;
+    return d;
+  }
+
+  function addOneDayToDateKey(key) {
+    var d = parseLocalDateKey(key);
+    if (!d) return null;
+    d.setDate(d.getDate() + 1);
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  }
+
+  function compareDateKeys(a, b) {
+    if (a < b) return -1;
+    if (a > b) return 1;
+    return 0;
+  }
+
+  function expectedMinutesForLocalDate(d, cfg) {
+    if (!d || Number.isNaN(d.getTime())) return 0;
+    var day = d.getDay();
+    if (day === 0 || day === 6) return 0;
+    if (day === 5) return cfg.fridayMinutes;
+    return cfg.weekdayMinutes;
+  }
+
+  function mergeBalanceConfig(config) {
+    var raw = (config && config.balance) || {};
+    var startDate = typeof raw.startDate === 'string' && raw.startDate.length >= 10
+      ? raw.startDate.slice(0, 10)
+      : BALANCE_DEFAULTS.startDate;
+    var initialBalanceMinutes = typeof raw.initialBalanceMinutes === 'number' && !isNaN(raw.initialBalanceMinutes)
+      ? Math.round(raw.initialBalanceMinutes)
+      : BALANCE_DEFAULTS.initialBalanceMinutes;
+    var weekdayMinutes = typeof raw.weekdayMinutes === 'number' && !isNaN(raw.weekdayMinutes)
+      ? Math.round(raw.weekdayMinutes)
+      : BALANCE_DEFAULTS.weekdayMinutes;
+    var fridayMinutes = typeof raw.fridayMinutes === 'number' && !isNaN(raw.fridayMinutes)
+      ? Math.round(raw.fridayMinutes)
+      : BALANCE_DEFAULTS.fridayMinutes;
+    return {
+      startDate: startDate,
+      initialBalanceMinutes: initialBalanceMinutes,
+      weekdayMinutes: weekdayMinutes,
+      fridayMinutes: fridayMinutes
+    };
+  }
+
+  function computeBalanceUpTo(records, endDateKey, cfg) {
+    var total = cfg.initialBalanceMinutes;
+    if (!cfg.startDate || compareDateKeys(endDateKey, cfg.startDate) < 0) return total;
+    var cur = cfg.startDate;
+    var guard = 0;
+    while (compareDateKeys(cur, endDateKey) <= 0) {
+      var d = parseLocalDateKey(cur);
+      if (!d) break;
+      var expected = expectedMinutesForLocalDate(d, cfg);
+      var worked = minutesWorkedInDay(getRecordsByDate(records, cur));
+      total += worked - expected;
+      var next = addOneDayToDateKey(cur);
+      if (!next || next === cur) break;
+      cur = next;
+      guard++;
+      if (guard > 5000) break;
+    }
+    return total;
+  }
+
+  function formatSignedBalanceMinutes(m) {
+    if (m === 0) return '0h 0min';
+    var sign = m > 0 ? '+' : '−';
+    var abs = Math.abs(m);
+    return sign + formatMinutes(abs);
+  }
+
   let state = {
     config: {},
     records: [],
@@ -157,6 +247,11 @@
     editingId: null,
     addingForDate: null
   };
+
+  function normalizeConfigBalance() {
+    if (!state.config) state.config = {};
+    state.config.balance = mergeBalanceConfig(state.config);
+  }
 
   function isLoggedIn() {
     return localStorage.getItem(STORAGE_KEY) === '1';
@@ -196,8 +291,9 @@
         const match = stored === submitted || (stored && stored === hash);
         if (match) {
           setLoggedIn(true);
-          state.config = data.config;
+          state.config = data.config || {};
           state.records = data.records || [];
+          normalizeConfigBalance();
           showScreen('app');
           renderApp();
         } else {
@@ -228,9 +324,10 @@
         const newConfig = { ...(data.config || {}), password: hash };
         const newRecords = data.records || [];
         try {
-          await apiPut({ config: newConfig, records: newRecords });
           state.config = newConfig;
           state.records = newRecords;
+          normalizeConfigBalance();
+          await apiPut({ config: state.config, records: state.records });
           setLoggedIn(true);
           showScreen('app');
           renderApp();
@@ -285,12 +382,19 @@
     }
     grid += '</div>';
     const monthTotalStr = totalMonthMinutes > 0 ? formatMinutes(totalMonthMinutes) : '—';
+    const balanceCfg = mergeBalanceConfig(state.config);
+    const todayKey = dateStr(new Date());
+    const balanceMinutes = computeBalanceUpTo(state.records, todayKey, balanceCfg);
+    const balanceStr = formatSignedBalanceMinutes(balanceMinutes);
     const nav = `
       <nav class="calendar-nav">
         <button type="button" id="btn-prev-month" aria-label="Mês anterior">‹</button>
         <span class="calendar-title">${firstDay.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
         <button type="button" id="btn-next-month" aria-label="Próximo mês">›</button>
-        <span class="calendar-month-total" aria-label="Total de horas no mês">Total do mês: ${monthTotalStr}</span>
+        <div class="calendar-nav-totals">
+          <span class="calendar-balance" aria-label="Saldo de horas até hoje">Saldo até hoje: ${balanceStr}</span>
+          <span class="calendar-month-total" aria-label="Total de horas no mês">Total do mês: ${monthTotalStr}</span>
+        </div>
       </nav>
       <button type="button" id="btn-logout" class="btn-logout">Sair</button>
     `;
@@ -395,6 +499,7 @@
   }
 
   async function persist() {
+    normalizeConfigBalance();
     const body = { config: state.config, records: state.records };
     await apiPut(body);
   }
@@ -439,6 +544,7 @@
       if (done) return;
       state.config = data.config || {};
       state.records = data.records || [];
+      normalizeConfigBalance();
       if (isLoggedIn()) {
         showScreen('app');
         renderApp();
