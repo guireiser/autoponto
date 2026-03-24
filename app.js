@@ -84,6 +84,13 @@
     return toLocalDateKey(d);
   }
 
+  function yesterdayLocalDateKey() {
+    var now = new Date();
+    var y = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    y.setDate(y.getDate() - 1);
+    return dateStr(y);
+  }
+
   function formatTime(iso) {
     return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   }
@@ -357,6 +364,8 @@
     const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     let grid = '<div class="calendar-weekdays">' + weekDays.map(d => `<span>${d}</span>`).join('') + '</div><div class="calendar-grid">';
     for (let i = 0; i < start; i++) grid += '<div class="calendar-day empty"></div>';
+    const balanceCfg = mergeBalanceConfig(state.config);
+    const yesterdayKey = yesterdayLocalDateKey();
     let totalMonthMinutes = 0;
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStrLocal = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -364,9 +373,13 @@
       const minutes = minutesWorkedInDay(dayRecords);
       totalMonthMinutes += minutes;
       const isToday = dateStrLocal === dateStr(new Date());
+      const dayBalanceStr = compareDateKeys(dateStrLocal, yesterdayKey) <= 0
+        ? formatSignedBalanceMinutes(computeBalanceUpTo(state.records, dateStrLocal, balanceCfg))
+        : '—';
       grid += `<div class="calendar-day ${isToday ? 'today' : ''}" data-date="${dateStrLocal}">
         <div class="day-number">${d}</div>
         <div class="day-total"><span class="day-total-label">Total:</span> <span class="day-hours">${minutes > 0 ? formatMinutes(minutes) : '—'}</span></div>
+        <div class="day-balance"><span class="day-balance-label">Saldo:</span> <span class="day-balance-value">${dayBalanceStr}</span></div>
         <ul class="day-records">${dayRecords.map(r => {
           const type = normalizeType(r.type);
           return `
@@ -382,9 +395,7 @@
     }
     grid += '</div>';
     const monthTotalStr = totalMonthMinutes > 0 ? formatMinutes(totalMonthMinutes) : '—';
-    const balanceCfg = mergeBalanceConfig(state.config);
-    const todayKey = dateStr(new Date());
-    const balanceMinutes = computeBalanceUpTo(state.records, todayKey, balanceCfg);
+    const balanceMinutes = computeBalanceUpTo(state.records, yesterdayKey, balanceCfg);
     const balanceStr = formatSignedBalanceMinutes(balanceMinutes);
     const nav = `
       <nav class="calendar-nav">
@@ -392,7 +403,7 @@
         <span class="calendar-title">${firstDay.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
         <button type="button" id="btn-next-month" aria-label="Próximo mês">›</button>
         <div class="calendar-nav-totals">
-          <span class="calendar-balance" aria-label="Saldo de horas até hoje">Saldo até hoje: ${balanceStr}</span>
+          <span class="calendar-balance" aria-label="Saldo de horas até ontem">Saldo até ontem: ${balanceStr}</span>
           <span class="calendar-month-total" aria-label="Total de horas no mês">Total do mês: ${monthTotalStr}</span>
         </div>
       </nav>

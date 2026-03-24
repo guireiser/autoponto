@@ -2,6 +2,13 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.17] - 2026-03-24
+
+### Alterado
+
+- **Saldo na barra:** exibido como **até ontem** (data local), não mais até hoje.
+- **Saldo por dia:** cada célula do calendário mostra o saldo cumulativo ao fim daquele dia; em **hoje** e dias futuros mostra **—** (alinhado ao saldo “fechado” do topo).
+
 ## [1.0.16] - 2026-03-24
 
 ### Adicionado
