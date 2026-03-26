@@ -5,25 +5,25 @@ Contexto para agentes e contribuidores.
 ## Stack
 
 - **Front-end:** HTML, CSS e JavaScript vanilla (sem framework). Uma única página (SPA) em `index.html`; lógica em `app.js`, estilos em `styles.css`.
-- **Persistência:** [JSONBin.io](https://jsonbin.io) — um único bin com objeto `{ config, records }`. A página web chama o JSONBin direto (GET/PUT). O registro pelo iPhone (Atalhos) usa o **Cloudflare Worker** `workers/autoponto-punch/`: **POST** autenticado por token → o Worker chama JSONBin (GET/PUT) com a Master Key, sem expor a key no dispositivo.
-- **Deploy:** GitHub Pages via GitHub Actions para o site estático. O workflow em `.github/workflows/deploy-pages.yml` gera `config.js` a partir de `config.template.js` substituindo `{{BIN_ID}}` e `{{API_KEY}}` pelos valores dos Secrets `JSONBIN_BIN_ID` e `JSONBIN_MASTER_KEY`, e publica o diretório `site/` (com index.html, app.js, config.js, styles.css, config.json) como artefato para o Pages. O Worker é deploy **separado** na Cloudflare (`npx wrangler deploy` na pasta do worker; secrets via `wrangler secret put`), não faz parte do workflow do Pages.
+- **Persistência:** [JSONBin.io](https://jsonbin.io) — um único bin com objeto `{ config, records }`. A **interface web** não chama o JSONBin direto: fala só com o **Cloudflare Worker** `workers/autoponto-punch/` (`WORKER_BASE_URL` em `config.js` / `config.local.js`). O Worker usa Master Key + Bin ID em secrets, expõe rotas `/auth/*` e `/api/bin` com **JWT** (`SESSION_SECRET`) e mantém **POST** `/` e `/punch` com **SHORTCUT_TOKEN** para o atalho iOS.
+- **Deploy:** GitHub Pages via GitHub Actions. O workflow em `.github/workflows/deploy-pages.yml` gera `config.js` a partir de `config.template.js` substituindo `{{WORKER_BASE_URL}}` pelo secret **`AUTOPONTO_WORKER_URL`**. Publica `site/` (index.html, app.js, config.js, styles.css, config.json). O Worker é deploy **separado** na Cloudflare (`npx wrangler deploy`; secrets incluem `JSONBIN_*`, `SHORTCUT_TOKEN`, `SESSION_SECRET`).
 
 ## Onde está o quê
 
-- **Configuração injetada no deploy:** `config.template.js` (versionado, com placeholders). O arquivo `config.js` é gerado no workflow e não é versionado (está no `.gitignore`). Em desenvolvimento local usa-se `config.local.js` (copiar do template e preencher; também no `.gitignore`). No `index.html`, `config.js` é carregado primeiro; um script inline verifica se o host é `github.io` (produção): em produção carrega só `app.js` (não solicita `config.local.js`, evitando 404 no console). Em desenvolvimento local carrega `config.local.js` e em seguida `app.js`.
-- **“API” de registro de ponto (atalho):** o site não tem backend. O atalho iOS envia **POST** ao Worker `autoponto-punch` (token no header); o Worker faz GET no bin, acrescenta o registro em `records` e PUT (documentado no README e em `workers/autoponto-punch/README.md`). Deploy de referência documentado: `https://autoponto-punch.reiser-gui.workers.dev` (`/` ou `/punch`).
-- **Lógica da aplicação:** `app.js` — lê `window.APP_CONFIG` (BIN_ID, API_KEY), chama JSONBin (GET/PUT) com timeout de 12s no GET e failsafe de 16s para evitar tela travada em “Carregando…”, gerencia login/senha (`config.password` no bin, localStorage para “logado”), renderiza o calendário e os modais de edição/adição, calcula horas por dia (pares entrada/saída em ordem cronológica) com base na **data local** do navegador, persiste com PUT ao editar/adicionar/excluir e evita optional chaining na inicialização para manter compatibilidade com navegadores mais antigos. O GET aceita resposta no formato `{ record }` ou com o bin direto no body (quando X-Bin-Meta: false).
-- **Versão do app:** `config.json` → campo `version` (usado para Changelog e referência).
+- **Configuração injetada no deploy:** `config.template.js` (placeholder `{{WORKER_BASE_URL}}`). `config.js` é gerado no workflow e não é versionado. Localmente: `config.local.js` (ver `config.local.example.js`). No `index.html`, em produção (`github.io`) carrega `config.js` + `app.js`; em desenvolvimento tenta `config.local.js` antes de `app.js`.
+- **Atalho iOS:** POST ao Worker com token no header — documentado no README e em `workers/autoponto-punch/README.md`. Deploy de referência: `https://autoponto-punch.reiser-gui.workers.dev` (`/` ou `/punch`).
+- **Lógica da aplicação:** `app.js` — lê `window.APP_CONFIG` (`WORKER_BASE_URL`), obtém sessão com `POST /auth/login` ou `POST /auth/setup`, guarda JWT em **sessionStorage**, usa `GET/PUT /api/bin` com `Authorization: Bearer`, timeout 12s nas requisições e failsafe 16s em “Carregando…”, renderiza calendário e modais, calcula horas por dia (data local; entrada +2 min / saída −2 min), normaliza `config.balance` ao persistir. Compatibilidade: evita optional chaining na inicialização.
+- **Versão do app:** `config.json` → campo `version` (Changelog e referência).
 
 ## Fluxo de dados
 
-1. **Carregamento:** `app.js` faz GET no bin; se existir `config.password`, exibe tela de login; senão, tela “Definir senha”. Após login, guarda “logado” em localStorage e mostra o calendário.
-2. **Calendário:** registros em `state.records`; filtrados por **data local do navegador** (não por string UTC), ordenados por `datetime`; horas por dia = soma dos intervalos entre cada “entrada” e a próxima “saída” no mesmo dia usando horário efetivo (**entrada +2 min**, **saída −2 min** em relação ao `datetime` salvo). A lista do dia mostra esses horários efetivos; o modal de edição continua com o valor salvo. Cada dia exibe “Total: Xh Ymin” e “Saldo:” (cumulativo ao fim daquele dia; **—** em hoje e dias futuros). A nav exibe “Saldo até ontem” (mesmo cálculo até a data local de ontem) e “Total do mês”. `config.balance` tem defaults no código e é normalizado em toda persistência. Ao clicar “+ Ponto” em um dia, o modal de adicionar abre com a data daquele dia e 08:00.
-3. **Alterações (editar/excluir/adicionar):** atualiza `state.records` (e `state.config` quando aplicável) e chama `apiPut({ config: state.config, records: state.records })`.
-4. **Atalho iOS:** POST ao Worker com `type` (e opcionalmente `datetime`); o Worker persiste no mesmo bin via JSONBin.
+1. **Carregamento:** Se existir JWT em `sessionStorage`, `GET /api/bin`; se 401, limpa token. Senão `GET /auth/meta` → tela login ou “Definir senha”. Após login/setup bem-sucedido, grava token e mostra o calendário.
+2. **Calendário:** Mesmas regras de antes (`state.records`, totais, saldo, etc.).
+3. **Alterações:** `PUT /api/bin` com JWT; o Worker reincorpora `config.password` do bin antes de gravar.
+4. **Atalho iOS:** POST com `SHORTCUT_TOKEN`; Worker GET/PUT no JSONBin.
 
 ## Regras do projeto
 
-- Ao fazer alterações relevantes, adicionar entradas no `Changelog.md` e registrar a versão conforme `config.json`.
-- Atualizar o `README.md` quando houver novos recursos ou alterações.
-- Atualizar este `AGENTS.md` quando houver mudanças de arquitetura, fluxo ou documentação para agentes.
+- Alterações relevantes: `Changelog.md` + versão em `config.json`.
+- Novos recursos/fluxos: `README.md`.
+- Mudanças de arquitetura: este `AGENTS.md`.

@@ -2,6 +2,18 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.18] - 2026-03-26
+
+### Segurança / arquitetura
+
+- **Site → Worker → JSONBin:** a interface não chama mais o JSONBin no navegador; Master Key e Bin ID ficam só nos secrets do Cloudflare Worker. O `config.js` publicado contém apenas `WORKER_BASE_URL` (secret `AUTOPONTO_WORKER_URL` no GitHub).
+- **Sessão:** login com JWT assinado no Worker (`SESSION_SECRET`); token em `sessionStorage` (não é possível “entrar” só com flag em `localStorage`). Logout e expiração limpam a sessão.
+
+### Alterado
+
+- Workflow do Pages: removidos `JSONBIN_BIN_ID` / `JSONBIN_MASTER_KEY` da geração do site; adicionado `AUTOPONTO_WORKER_URL`.
+- Desenvolvimento local: `config.local.js` com `WORKER_BASE_URL`; exemplo em `config.local.example.js`.
+
 ## [1.0.17] - 2026-03-24
 
 ### Alterado

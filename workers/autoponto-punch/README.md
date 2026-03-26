@@ -1,12 +1,12 @@
 # autoponto-punch (Cloudflare Worker)
 
-Proxy para registrar **entrada** / **saída** no mesmo bin do [JSONBin.io](https://jsonbin.io) usado pelo Autoponto, com um único **POST** — usado pelo atalho no iPhone sem expor a Master Key no dispositivo.
+Proxy entre o **Autoponto** e o [JSONBin.io](https://jsonbin.io): o atalho iOS envia **POST** com token; a **interface web** usa **sessão JWT** para ler e gravar o bin sem expor Master Key nem Bin ID no navegador.
 
 ## Pré-requisitos
 
 - Conta [Cloudflare](https://dash.cloudflare.com/) (plano gratuito)
 - Node.js (para `npx wrangler`)
-- Bin no JSONBin com formato `{ "config": {}, "records": [] }` (igual ao app)
+- Bin no JSONBin com formato `{ "config": {}, "records": [] }`
 
 ## Configuração de secrets
 
@@ -17,10 +17,12 @@ npx wrangler login
 npx wrangler secret put JSONBIN_BIN_ID
 npx wrangler secret put JSONBIN_MASTER_KEY
 npx wrangler secret put SHORTCUT_TOKEN
+npx wrangler secret put SESSION_SECRET
 ```
 
-- **JSONBIN_BIN_ID** e **JSONBIN_MASTER_KEY**: os mesmos valores dos Secrets do GitHub (`JSONBIN_BIN_ID`, `JSONBIN_MASTER_KEY`).
-- **SHORTCUT_TOKEN**: uma string longa e aleatória (ex.: gerada por um gerenciador de senhas). O atalho do iOS envia esse token no header; quem não tiver o token não consegue gravar ponto.
+- **JSONBIN_BIN_ID** / **JSONBIN_MASTER_KEY:** mesmos valores usados para acessar o bin (não vão para o GitHub Pages).
+- **SHORTCUT_TOKEN:** string longa e aleatória; o atalho iOS envia no header.
+- **SESSION_SECRET:** string longa e aleatória (ex.: `openssl rand -hex 32`); usada para assinar JWT da interface web. **Obrigatória** para login e para `GET`/`PUT` `/api/bin`.
 
 ## Deploy
 
@@ -29,31 +31,48 @@ cd workers/autoponto-punch
 npx wrangler deploy
 ```
 
-Anote a URL exibida (ex.: `https://autoponto-punch.<subdomínio>.workers.dev`).
+Anote a URL exibida (ex.: `https://autoponto-punch.<subdomínio>.workers.dev`). Essa URL deve ir para o secret **`AUTOPONTO_WORKER_URL`** no GitHub (Pages) e para `WORKER_BASE_URL` em `config.local.js` no desenvolvimento local.
 
 ### URL em produção (deploy deste projeto)
 
 - **Base:** [`https://autoponto-punch.reiser-gui.workers.dev`](https://autoponto-punch.reiser-gui.workers.dev)
-- **POST:** mesma base com `/` ou `/punch` (ex.: `…/punch`).
 
-Quem clonar o repositório e fizer deploy na própria conta terá outro subdomínio; o atalho deve apontar para a URL do seu Worker.
+Quem clonar o repositório e fizer deploy na própria conta terá outro subdomínio.
 
-## Contrato HTTP
+---
+
+## Atalho iPhone (POST)
 
 - **POST** `/` ou `/punch`
 - Header: `Authorization: Bearer <SHORTCUT_TOKEN>` **ou** `X-Autoponto-Token: <SHORTCUT_TOKEN>`
-- Corpo JSON:
-  - `type` (obrigatório): `entrada`, `saída` ou `saida`
-  - `datetime` (opcional): ISO 8601; se omitido, usa o instante no Worker (UTC)
+- Corpo JSON: `type` (`entrada`, `saída` ou `saida`); `datetime` opcional (ISO 8601)
 
 Resposta `200`: `{ "ok": true, "type": "...", "datetime": "..." }`.
 
-`OPTIONS` responde com CORS para testes no navegador (o app Atalhos não depende disso).
+---
+
+## Interface web (CORS)
+
+Todas as rotas abaixo respondem a `OPTIONS` com CORS. Origem refletida a partir do header `Origin` (quando presente).
+
+| Rota | Método | Autenticação | Descrição |
+|------|--------|--------------|-----------|
+| `/auth/meta` | GET | — | `{ "hasPassword": true \| false }`. `Cache-Control: no-store`. |
+| `/auth/login` | POST | — | Corpo `{ "password": "..." }`. Resposta `{ "ok": true, "token": "<JWT>", "record": { "config", "records" } }` sem `config.password`. |
+| `/auth/setup` | POST | — | Só se ainda **não** existir senha no bin. Corpo `{ "password": "..." }`; grava hash SHA-256 e devolve token + record (sanitizado). |
+| `/api/bin` | GET | `Authorization: Bearer <JWT>` | `{ "ok": true, "record": { "config", "records" } }` sem `config.password`. |
+| `/api/bin` | PUT | `Authorization: Bearer <JWT>` | Corpo `{ "config", "records" }`. O Worker **preserva** `config.password` do bin atual (o cliente não pode trocá-la por este canal). |
+
+Erros comuns: `401` (JWT inválido/expirado ou senha errada), `409` em `/auth/setup` se a senha já existir, `503` se faltar secret no Worker.
+
+**Validade do JWT:** 7 dias (`exp`).
+
+---
 
 ## Limite
 
-Dois POSTs quase ao mesmo tempo podem sobrescrever um ao outro (padrão GET → modificar → PUT). Para uso pessoal costuma ser raro.
+Requisições concorrentes (dois POSTs do atalho ou PUT + POST) podem competir (GET → modificar → PUT). Para uso pessoal costuma ser raro.
 
 ## Documentação do projeto
 
-Instruções completas do atalho iOS e contexto estão no [README.md](../../README.md) na raiz do repositório.
+Instruções do atalho iOS e do Pages estão no [README.md](../../README.md) na raiz do repositório.

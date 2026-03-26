@@ -1,5 +1,5 @@
 # Deploy: npx wrangler deploy
-# Secrets (não versionar): npx wrangler secret put JSONBIN_BIN_ID | JSONBIN_MASTER_KEY | SHORTCUT_TOKEN
+# Secrets (não versionar): JSONBIN_BIN_ID, JSONBIN_MASTER_KEY, SHORTCUT_TOKEN, SESSION_SECRET
 # Produção documentada: https://autoponto-punch.reiser-gui.workers.dev
 
 name = "autoponto-punch"

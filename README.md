@@ -9,7 +9,7 @@ Aplicativo estático de controle de ponto de trabalho para publicar no GitHub Pa
 - **Cálculo de horas trabalhadas** por dia (soma dos intervalos entre cada par entrada → saída), com agrupamento por data local do navegador (evita deslocamento de dia por UTC). Regra fixa: horário efetivo da **entrada** = registro **+2 min**; da **saída** = registro **−2 min** (o armazenamento segue o horário real batido ou digitado).
 - **Edição manual**: adicionar, editar horário e excluir registros (ao adicionar ponto em um dia, a data do dia já vem preenchida)
 - **Senha de acesso** à página (definida na primeira vez e armazenada no bin)
-- **Deploy no GitHub Pages** com API Key e Bin ID injetados por GitHub Secrets (não ficam no repositório)
+- **Deploy no GitHub Pages** com URL pública do Worker injetada por GitHub Secret (`AUTOPONTO_WORKER_URL`); Master Key e Bin ID **não** vão para o bundle do site
 - **Shortcut no iPhone** para registrar entrada/saída pelo Worker (POST; documentado abaixo)
 
 ## Pré-requisitos
@@ -18,39 +18,34 @@ Aplicativo estático de controle de ponto de trabalho para publicar no GitHub Pa
 - Repositório no GitHub com GitHub Pages habilitado via **GitHub Actions**
 - Para o atalho no iPhone: conta na [Cloudflare](https://dash.cloudflare.com/) (plano gratuito) e deploy do Worker em [`workers/autoponto-punch/`](workers/autoponto-punch/) — ver [README do worker](workers/autoponto-punch/README.md)
 
-## Configurar Secrets no GitHub
+## Configurar JSONBin e Cloudflare Worker
 
-Para não expor a API Key e o Bin ID no repositório público, use **GitHub Secrets**. O workflow de deploy gera `config.js` em tempo de build a partir dos secrets.
+A Master Key e o Bin ID ficam **apenas** nos secrets do Worker (Wrangler), não no repositório nem no JavaScript publicado no Pages.
 
-### 1. Criar conta e bin no JSONBin.io
+1. Crie o bin no [JSONBin.io](https://jsonbin.io) com o corpo inicial `{ "config": {}, "records": [] }` e anote **Bin ID** e **Master Key** (ou Access Key com leitura/escrita).
+2. Faça deploy do Worker em [`workers/autoponto-punch/`](workers/autoponto-punch/) e configure os secrets com `npx wrangler secret put` — ver [README do worker](workers/autoponto-punch/README.md) (**inclui `SESSION_SECRET`** para sessão da interface web).
+3. Anote a URL pública do Worker (ex.: `https://autoponto-punch.seu-subdominio.workers.dev`, **sem barra no final**).
 
-1. Acesse [jsonbin.io](https://jsonbin.io) e crie uma conta (se necessário).
-2. Crie um novo bin com o corpo inicial:
-   ```json
-   { "config": {}, "records": [] }
-   ```
-3. Anote:
-   - **Bin ID** (ex.: `65f1234567890abcdef12345`) — aparece na URL ou na resposta da API
-   - **Master Key** ou uma Access Key com permissão de leitura e escrita — em [API Keys](https://jsonbin.io/app/api-keys)
+## Configurar Secret no GitHub (somente Pages)
 
-### 2. Abrir os Secrets do repositório no GitHub
+O workflow gera `config.js` só com a URL do Worker.
 
-1. No repositório, vá em **Settings** → **Secrets and variables** → **Actions**.
+### 1. Abrir os Secrets do repositório
 
-### 3. Criar os Secrets
+**Settings** → **Secrets and variables** → **Actions**.
 
-1. Clique em **New repository secret**.
-2. Crie dois secrets (os nomes devem ser exatamente estes):
-   - **Nome:** `JSONBIN_BIN_ID` → **Valor:** o Bin ID anotado.
-   - **Nome:** `JSONBIN_MASTER_KEY` → **Valor:** a Master Key (ou Access Key) do JSONBin.
+### 2. Criar o secret
 
-### 4. Não commitar a key
+- **Nome:** `AUTOPONTO_WORKER_URL`
+- **Valor:** a URL base do Worker (a mesma usada no atalho iOS, ex.: `https://autoponto-punch.reiser-gui.workers.dev`)
 
-Nunca coloque a Master Key ou o Bin ID em arquivos versionados. O único arquivo de config versionado é `config.template.js`, que contém apenas placeholders `{{BIN_ID}}` e `{{API_KEY}}`. O workflow substitui esses placeholders pelos valores dos Secrets no momento do deploy.
+### 3. Arquivo versionado
 
-### 5. Rodar o deploy
+O [`config.template.js`](config.template.js) contém apenas o placeholder `{{WORKER_BASE_URL}}`. Não commite `config.js` nem `config.local.js` com dados reais.
 
-Após salvar os Secrets, o próximo push na branch `main` dispara o workflow: ele gera `config.js` e publica o site no GitHub Pages. Em **Settings** → **Pages**, defina a fonte como **GitHub Actions** (não “Deploy from a branch”).
+### 4. Rodar o deploy do site
+
+Após salvar o secret, o push na `main` gera `config.js` e publica o Pages. **Ordem recomendada:** deploy do Worker (com `SESSION_SECRET`) antes do deploy do site. Em **Settings** → **Pages**, use **Source: GitHub Actions**.
 
 ---
 
@@ -91,18 +86,18 @@ Dois atalhos separados (“Bater entrada” / “Bater saída”) com `type` fix
 
 ## Desenvolvimento local
 
-1. Copie o template de configuração:
+1. Copie o exemplo e edite a URL do Worker:
    ```bash
-   cp config.template.js config.local.js
+   cp config.local.example.js config.local.js
    ```
-2. Edite `config.local.js` e substitua os placeholders pelos seus valores:
-   - `{{BIN_ID}}` → seu Bin ID
-   - `{{API_KEY}}` → sua Master Key do JSONBin
-3. Abra `index.html` em um servidor local (o navegador pode bloquear requisições a APIs a partir de `file://`). Exemplo com Python:
+2. Em `config.local.js`, defina `WORKER_BASE_URL` com a URL do Worker (`wrangler deploy` ou `wrangler dev`).
+3. Sirva a pasta com um servidor HTTP (evite `file://`). Exemplo:
    ```bash
    python -m http.server 8080
    ```
-  Acesse `http://localhost:8080`. A página carrega primeiro `config.js` e depois `config.local.js` (se existir); localmente você usa `config.local.js` e não versiona `config.js` (está no `.gitignore`). Se a página ficar em "Carregando…" no GitHub Pages, após no máximo 16 segundos aparece uma mensagem de erro. Verifique: (1) o bin existe no JSONBin.io com o BIN_ID igual ao secret `JSONBIN_BIN_ID`; (2) o corpo do bin é `{ "config": {}, "records": [] }`; (3) abra F12 → Aba Rede/Network, recarregue a página e veja se a requisição a `api.jsonbin.io` aparece e qual o status (CORS, 404, 401, etc.). Em navegadores mais antigos, erros de parsing de JavaScript também podem impedir a inicialização; mantenha o navegador atualizado.
+   Acesse `http://localhost:8080`. O `index.html` carrega `config.js` e, fora de `github.io`, tenta `config.local.js` antes de `app.js`.
+
+Se ficar em “Carregando…”, após ~16s aparece erro: confira se o Worker está no ar, se `SESSION_SECRET` e os secrets JSONBin estão definidos no Wrangler, e no Network se as requisições a `/auth/meta`, `/auth/login` ou `/api/bin` retornam 200/401 esperados (CORS é respondido pelo Worker).
 
 ---
 
@@ -138,14 +133,13 @@ O bin armazena um único objeto JSON:
 
 1. Faça push do código para a branch `main` (ou a branch configurada no workflow).
 2. Em **Settings** → **Pages**, escolha **Source: GitHub Actions**.
-3. O workflow `Deploy to GitHub Pages` roda a cada push na `main`: gera `config.js` a partir dos Secrets e publica o site.
+3. O workflow `Deploy to GitHub Pages` roda a cada push na `main`: gera `config.js` com `AUTOPONTO_WORKER_URL` e publica o site.
 4. O site ficará em `https://<seu-usuario>.github.io/<nome-do-repo>/`.
 
 ---
 
 ## Segurança e limitações
 
-- **Repositório público:** a API Key e o Bin ID não ficam no código; são injetados em tempo de deploy via GitHub Secrets.
-- **Site publicado:** o JavaScript do site ainda contém a key no front-end (quem inspecionar o site no navegador pode vê-la). A proteção dos Secrets evita que a key apareça no repositório.
-- A **senha** no bin protege apenas o acesso à interface; quem tiver a key pode ler/editar o bin diretamente pela API.
-- Com o **Worker**, quem tiver só o `SHORTCUT_TOKEN` pode **adicionar** registros (o Worker faz GET/PUT com a Master Key). Não versione esse token; troque-o se vazar. O token não substitui a senha da interface web.
+- **Repositório e site:** o bundle publicado no Pages contém só `WORKER_BASE_URL` (pública). Master Key, Bin ID, `SESSION_SECRET` e `SHORTCUT_TOKEN` ficam nos secrets da Cloudflare (Worker).
+- **Sessão web:** JWT de curta duração (7 dias) em `sessionStorage`; não dá para simular login só alterando `localStorage` como antes.
+- **Riscos residuais:** quem controlar o HTML/JS do site (XSS ou fork malicioso) pode roubar o JWT na sessão. Quem tiver o **SHORTCUT_TOKEN** continua podendo **só adicionar** pontos pelo POST do atalho; não substitui a senha da interface. Não versione tokens; troque se vazarem.

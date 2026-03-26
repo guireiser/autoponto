@@ -2,22 +2,66 @@
   'use strict';
 
   const CONFIG = window.APP_CONFIG;
-  const STORAGE_KEY = 'autoponto_logged_in';
-  const API_BASE = 'https://api.jsonbin.io/v3/b';
+  const SESSION_STORAGE_KEY = 'autoponto_session_token';
+  const LEGACY_LOGGED_KEY = 'autoponto_logged_in';
 
-  if (!CONFIG || !CONFIG.BIN_ID || !CONFIG.API_KEY) {
-    document.body.innerHTML = '<div class="screen" id="screen-error"><p>Configure <code>config.js</code> ou <code>config.local.js</code> com BIN_ID e API_KEY (JSONBin.io).</p></div>';
+  if (!CONFIG || !CONFIG.WORKER_BASE_URL || String(CONFIG.WORKER_BASE_URL).trim() === '') {
+    document.body.innerHTML = '<div class="screen" id="screen-error"><p>Configure <code>config.js</code> ou <code>config.local.js</code> com WORKER_BASE_URL (URL pública do Cloudflare Worker).</p></div>';
     return;
   }
 
-  const binUrl = () => `${API_BASE}/${CONFIG.BIN_ID}/latest`;
-  const binPutUrl = () => `${API_BASE}/${CONFIG.BIN_ID}`;
+  try {
+    localStorage.removeItem(LEGACY_LOGGED_KEY);
+  } catch (e) { /* ignore */ }
 
-  const headers = (isPut) => ({
-    'Content-Type': 'application/json',
-    'X-Master-Key': CONFIG.API_KEY,
-    ...(isPut ? {} : { 'X-Bin-Meta': 'false' })
-  });
+  function workerBaseUrl() {
+    return String(CONFIG.WORKER_BASE_URL).replace(/\/+$/, '');
+  }
+
+  function getSessionToken() {
+    try {
+      return sessionStorage.getItem(SESSION_STORAGE_KEY) || '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function setSessionToken(t) {
+    try {
+      sessionStorage.setItem(SESSION_STORAGE_KEY, t);
+    } catch (e) { /* ignore */ }
+  }
+
+  function clearSessionToken() {
+    try {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    } catch (e) { /* ignore */ }
+  }
+
+  function workerFetch(path, init) {
+    init = init || {};
+    var url = workerBaseUrl() + path;
+    var headers = {};
+    if (init.body != null && typeof init.body === 'string') {
+      headers['Content-Type'] = 'application/json';
+    }
+    if (init.headers) {
+      for (var k in init.headers) {
+        if (Object.prototype.hasOwnProperty.call(init.headers, k)) {
+          headers[k] = init.headers[k];
+        }
+      }
+    }
+    if (init.withAuth) {
+      var tok = getSessionToken();
+      if (tok) headers['Authorization'] = 'Bearer ' + tok;
+    }
+    return fetch(url, {
+      method: init.method || 'GET',
+      body: init.body,
+      headers: headers
+    });
+  }
 
   const FETCH_TIMEOUT_MS = 12000;
   /** Ajuste para totais e exibição no calendário: entrada +2 min, saída −2 min (horário salvo no bin permanece o real). */
@@ -25,31 +69,54 @@
 
   function timeoutPromise(ms) {
     return new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Tempo esgotado. Verifique sua conexão e se o BIN_ID está correto.')), ms)
+      setTimeout(() => reject(new Error('Tempo esgotado. Verifique sua conexão e a URL do Worker em config.')), ms)
     );
   }
 
-  async function apiGet() {
-    const fetchPromise = fetch(binUrl(), { headers: headers(false) });
-    const res = await Promise.race([fetchPromise, timeoutPromise(FETCH_TIMEOUT_MS)]);
-    if (!res.ok) {
-      if (res.status === 404) throw new Error('Bin não encontrado. Verifique o BIN_ID ou crie o bin no JSONBin.io.');
-      throw new Error('Falha ao carregar dados');
-    }
+  async function fetchAuthMeta() {
+    const res = await Promise.race([
+      workerFetch('/auth/meta', { method: 'GET' }),
+      timeoutPromise(FETCH_TIMEOUT_MS)
+    ]);
+    if (!res.ok) throw new Error('Falha ao consultar o servidor.');
     const data = await res.json();
-    if (data.record != null) return data.record;
-    if (data && (typeof data.config !== 'undefined' || typeof data.records !== 'undefined')) return data;
-    return { config: {}, records: [] };
+    return { hasPassword: !!data.hasPassword };
+  }
+
+  async function apiGet() {
+    const fetchPromise = workerFetch('/api/bin', { method: 'GET', withAuth: true });
+    const res = await Promise.race([fetchPromise, timeoutPromise(FETCH_TIMEOUT_MS)]);
+    if (res.status === 401) {
+      clearSessionToken();
+      throw new Error('UNAUTHORIZED');
+    }
+    if (!res.ok) throw new Error('Falha ao carregar dados');
+    const data = await res.json();
+    if (!data.ok || !data.record) throw new Error('Falha ao carregar dados');
+    return data.record;
   }
 
   async function apiPut(body) {
-    const res = await fetch(binPutUrl(), {
-      method: 'PUT',
-      headers: headers(true),
-      body: JSON.stringify(body)
-    });
+    const res = await Promise.race([
+      workerFetch('/api/bin', {
+        method: 'PUT',
+        withAuth: true,
+        body: JSON.stringify(body)
+      }),
+      timeoutPromise(FETCH_TIMEOUT_MS)
+    ]);
+    if (res.status === 401) {
+      clearSessionToken();
+      throw new Error('Sessão expirada. Entre novamente.');
+    }
     if (!res.ok) throw new Error('Falha ao salvar');
-    return res.json();
+    const data = await res.json();
+    if (data.ok && data.record) {
+      state.config = data.record.config || {};
+      state.records = data.record.records || [];
+      normalizeConfigBalance();
+    }
+    return data;
   }
 
   function pad2(n) {
@@ -260,13 +327,10 @@
     state.config.balance = mergeBalanceConfig(state.config);
   }
 
-  function isLoggedIn() {
-    return localStorage.getItem(STORAGE_KEY) === '1';
-  }
-
-  function setLoggedIn(value) {
-    if (value) localStorage.setItem(STORAGE_KEY, '1');
-    else localStorage.removeItem(STORAGE_KEY);
+  function applyRecord(record) {
+    state.config = (record && record.config) || {};
+    state.records = (record && record.records) || [];
+    normalizeConfigBalance();
   }
 
   function showScreen(id) {
@@ -275,8 +339,8 @@
     if (el) el.classList.add('active');
   }
 
-  function renderLogin(data) {
-    const hasPassword = data.config && data.config.password;
+  function renderLogin(meta) {
+    const hasPassword = meta && meta.hasPassword;
     const screen = document.getElementById('screen-login');
     if (!screen) return;
     if (hasPassword) {
@@ -293,18 +357,28 @@
         const errEl = document.getElementById('login-error');
         const input = document.getElementById('input-password');
         const submitted = input.value;
-        const stored = data.config.password;
-        const hash = await sha256(submitted);
-        const match = stored === submitted || (stored && stored === hash);
-        if (match) {
-          setLoggedIn(true);
-          state.config = data.config || {};
-          state.records = data.records || [];
-          normalizeConfigBalance();
+        errEl.textContent = '';
+        try {
+          const res = await Promise.race([
+            workerFetch('/auth/login', {
+              method: 'POST',
+              body: JSON.stringify({ password: submitted })
+            }),
+            timeoutPromise(FETCH_TIMEOUT_MS)
+          ]);
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            errEl.textContent = res.status === 401 ? 'Senha incorreta.' : (data.error || 'Erro ao entrar.');
+            return;
+          }
+          if (data.token) setSessionToken(data.token);
+          applyRecord(data.record);
           showScreen('app');
           renderApp();
-        } else {
-          errEl.textContent = 'Senha incorreta.';
+        } catch (err) {
+          errEl.textContent = err.message && err.message.indexOf('Tempo esgotado') !== -1
+            ? err.message
+            : 'Erro ao entrar. Verifique a conexão.';
         }
       };
     } else {
@@ -327,15 +401,24 @@
           errEl.textContent = 'As senhas não coincidem.';
           return;
         }
-        const hash = await sha256(p1);
-        const newConfig = { ...(data.config || {}), password: hash };
-        const newRecords = data.records || [];
+        errEl.textContent = '';
         try {
-          state.config = newConfig;
-          state.records = newRecords;
-          normalizeConfigBalance();
-          await apiPut({ config: state.config, records: state.records });
-          setLoggedIn(true);
+          const res = await Promise.race([
+            workerFetch('/auth/setup', {
+              method: 'POST',
+              body: JSON.stringify({ password: p1 })
+            }),
+            timeoutPromise(FETCH_TIMEOUT_MS)
+          ]);
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            errEl.textContent = res.status === 409
+              ? 'A senha já foi definida. Recarregue a página.'
+              : (data.error || 'Erro ao salvar.');
+            return;
+          }
+          if (data.token) setSessionToken(data.token);
+          applyRecord(data.record);
           showScreen('app');
           renderApp();
         } catch (err) {
@@ -343,12 +426,6 @@
         }
       };
     }
-  }
-
-  async function sha256(str) {
-    const enc = new TextEncoder();
-    const data = await crypto.subtle.digest('SHA-256', enc.encode(str));
-    return Array.from(new Uint8Array(data)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
   function renderApp() {
@@ -422,8 +499,13 @@
       renderApp();
     };
     document.getElementById('btn-logout').onclick = () => {
-      setLoggedIn(false);
+      clearSessionToken();
+      const loginScreen = document.getElementById('screen-login');
+      if (loginScreen) loginScreen.innerHTML = '<p>Carregando…</p>';
       showScreen('login');
+      fetchAuthMeta()
+        .then(function (m) { renderLogin(m); })
+        .catch(function () { renderLogin({ hasPassword: true }); });
     };
 
     container.querySelectorAll('.btn-edit').forEach(btn => {
@@ -546,30 +628,44 @@
     const failsafeId = setTimeout(function () {
       if (done) return;
       done = true;
-      showError('O carregamento demorou demais. Verifique sua conexão, o BIN_ID nos Secrets do GitHub e se o bin existe no JSONBin.io.');
+      showError('O carregamento demorou demais. Verifique sua conexão, se o Worker está no ar e se WORKER_BASE_URL está correto no deploy.');
     }, FAILSAFE_MS);
     if (loading) loading.classList.add('active');
     showScreen('loading');
     try {
-      const data = await apiGet();
-      if (done) return;
-      state.config = data.config || {};
-      state.records = data.records || [];
-      normalizeConfigBalance();
-      if (isLoggedIn()) {
-        showScreen('app');
-        renderApp();
-      } else {
-        showScreen('login');
-        renderLogin(data);
+      if (getSessionToken()) {
+        try {
+          const data = await apiGet();
+          if (done) return;
+          applyRecord(data);
+          showScreen('app');
+          renderApp();
+          return;
+        } catch (err) {
+          if (done) return;
+          if (err.message !== 'UNAUTHORIZED') {
+            const msg = err.message || '';
+            const friendly = msg.includes('Tempo esgotado')
+              ? msg
+              : (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network')
+                ? 'Não foi possível conectar ao Worker. Verifique a conexão e WORKER_BASE_URL.'
+                : msg || 'Erro ao carregar.');
+            showError(friendly);
+            return;
+          }
+        }
       }
+      const meta = await fetchAuthMeta();
+      if (done) return;
+      showScreen('login');
+      renderLogin(meta);
     } catch (err) {
       if (done) return;
       const msg = err.message || '';
-      const friendly = msg.includes('Tempo esgotado') || msg.includes('Bin não encontrado')
+      const friendly = msg.includes('Tempo esgotado')
         ? msg
         : (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network')
-          ? 'Não foi possível conectar ao servidor. Verifique a conexão e se o bin existe no JSONBin.io.'
+          ? 'Não foi possível conectar ao Worker. Verifique a conexão e WORKER_BASE_URL.'
           : msg || 'Erro ao carregar.');
       showError(friendly);
     } finally {

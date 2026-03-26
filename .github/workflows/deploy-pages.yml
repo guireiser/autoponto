@@ -23,15 +23,13 @@ jobs:
 
       - name: Generate config.js
         env:
-          JSONBIN_BIN_ID: ${{ secrets.JSONBIN_BIN_ID }}
-          JSONBIN_MASTER_KEY: ${{ secrets.JSONBIN_MASTER_KEY }}
+          AUTOPONTO_WORKER_URL: ${{ secrets.AUTOPONTO_WORKER_URL }}
         run: |
           node -e "
           const fs = require('fs');
           const t = fs.readFileSync('config.template.js', 'utf8');
-          const out = t
-            .replace('{{BIN_ID}}', process.env.JSONBIN_BIN_ID || '')
-            .replace('{{API_KEY}}', process.env.JSONBIN_MASTER_KEY || '');
+          const url = (process.env.AUTOPONTO_WORKER_URL || '').trim();
+          const out = t.replace('{{WORKER_BASE_URL}}', url);
           fs.writeFileSync('config.js', out);
           "
 
