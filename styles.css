@@ -578,6 +578,26 @@ body {
   font-size: 1rem;
   margin: 1.25rem 0 0.5rem;
 }
+.holidays-national-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 0.65rem;
+  font-size: 0.9rem;
+}
+.holidays-national-filter label {
+  font-weight: 600;
+  color: #444;
+}
+.holidays-national-filter select {
+  font: inherit;
+  padding: 0.3rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
+  min-width: 10rem;
+}
 .table-wrap {
   overflow-x: auto;
   border: 1px solid #e5e5e5;

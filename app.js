@@ -192,10 +192,10 @@
     if (!r) return '';
     var parts = [];
     if (r.source === 'gps') {
-      parts.push('<span class="record-source-icon record-source-gps" title="Registrado pelo atalho (GPS)">' + ICON_GPS_SVG + '</span>');
+      parts.push('<span class="record-source-icon record-source-gps" title="Registrado por GPS">' + ICON_GPS_SVG + '</span>');
     }
     if (r.source === 'manual' || r.editedInApp === true) {
-      parts.push('<span class="record-source-icon record-source-manual" title="Inserido ou editado no app">' + ICON_MANUAL_SVG + '</span>');
+      parts.push('<span class="record-source-icon record-source-manual" title="Registrado ou editado manualmente">' + ICON_MANUAL_SVG + '</span>');
     }
     if (!parts.length) return '';
     return '<span class="record-source-icons">' + parts.join('') + '</span>';
@@ -347,22 +347,68 @@
     };
   }
 
-  /** Feriados nacionais e principais móveis (2026, Brasil). Facultativos podem ser desativados em Feriados. */
-  var BR_HOLIDAYS_2026 = [
-    { date: '2026-01-01', name: 'Confraternização Universal' },
-    { date: '2026-02-16', name: 'Carnaval (segunda-feira)' },
-    { date: '2026-02-17', name: 'Carnaval (terça-feira)' },
-    { date: '2026-04-03', name: 'Sexta-feira Santa' },
-    { date: '2026-04-21', name: 'Tiradentes' },
-    { date: '2026-05-01', name: 'Dia do Trabalhador' },
-    { date: '2026-06-04', name: 'Corpus Christi' },
-    { date: '2026-09-07', name: 'Independência do Brasil' },
-    { date: '2026-10-12', name: 'Nossa Senhora Aparecida' },
-    { date: '2026-11-02', name: 'Finados' },
-    { date: '2026-11-15', name: 'Proclamação da República' },
-    { date: '2026-11-20', name: 'Consciência Negra' },
-    { date: '2026-12-25', name: 'Natal' }
-  ];
+  /** Intervalo de anos com feriados nacionais fixos + móveis (Páscoa) calculados no Brasil. */
+  var BR_NATIONAL_HOLIDAY_YEAR_FIRST = 2026;
+  var BR_NATIONAL_HOLIDAY_YEAR_LAST = 2032;
+
+  function easterSundayGregorian(year) {
+    var a = year % 19;
+    var b = Math.floor(year / 100);
+    var c = year % 100;
+    var d = Math.floor(b / 4);
+    var e = b % 4;
+    var f = Math.floor((b + 8) / 25);
+    var g = Math.floor((b - f + 1) / 3);
+    var h = (19 * a + b - d - g + 15) % 30;
+    var i = Math.floor(c / 4);
+    var k = c % 4;
+    var l = (32 + 2 * e + 2 * i - h - k) % 7;
+    var m = Math.floor((a + 11 * h + 22 * l) / 451);
+    var month = Math.floor((h + l - 7 * m + 114) / 31);
+    var day = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(year, month - 1, day);
+  }
+
+  function addDaysLocalDate(d, n) {
+    var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    x.setDate(x.getDate() + n);
+    return x;
+  }
+
+  function dateKeyFromLocalDate(d) {
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+
+  function buildBrazilNationalHolidaysList(fromYear, toYear) {
+    var list = [];
+    var y;
+    for (y = fromYear; y <= toYear; y++) {
+      var easter = easterSundayGregorian(y);
+      var carnMon = addDaysLocalDate(easter, -48);
+      var carnTue = addDaysLocalDate(easter, -47);
+      var goodFri = addDaysLocalDate(easter, -2);
+      var corpus = addDaysLocalDate(easter, 60);
+      list.push(
+        { date: y + '-01-01', name: 'Confraternização Universal' },
+        { date: dateKeyFromLocalDate(carnMon), name: 'Carnaval (segunda-feira)' },
+        { date: dateKeyFromLocalDate(carnTue), name: 'Carnaval (terça-feira)' },
+        { date: dateKeyFromLocalDate(goodFri), name: 'Sexta-feira Santa' },
+        { date: y + '-04-21', name: 'Tiradentes' },
+        { date: y + '-05-01', name: 'Dia do Trabalhador' },
+        { date: dateKeyFromLocalDate(corpus), name: 'Corpus Christi' },
+        { date: y + '-09-07', name: 'Independência do Brasil' },
+        { date: y + '-10-12', name: 'Nossa Senhora Aparecida' },
+        { date: y + '-11-02', name: 'Finados' },
+        { date: y + '-11-15', name: 'Proclamação da República' },
+        { date: y + '-11-20', name: 'Consciência Negra' },
+        { date: y + '-12-25', name: 'Natal' }
+      );
+    }
+    list.sort(function (a, b) { return compareDateKeys(a.date, b.date); });
+    return list;
+  }
+
+  var BR_HOLIDAYS_NATIONAL = buildBrazilNationalHolidaysList(BR_NATIONAL_HOLIDAY_YEAR_FIRST, BR_NATIONAL_HOLIDAY_YEAR_LAST);
 
   function isValidDateKey(key) {
     return key && parseLocalDateKey(key) !== null;
@@ -413,8 +459,8 @@
   function buildHolidayMap(config) {
     var map = {};
     var i;
-    for (i = 0; i < BR_HOLIDAYS_2026.length; i++) {
-      var nh = BR_HOLIDAYS_2026[i];
+    for (i = 0; i < BR_HOLIDAYS_NATIONAL.length; i++) {
+      var nh = BR_HOLIDAYS_NATIONAL[i];
       map[nh.date] = nh.name;
     }
     var removed = config && Array.isArray(config.holidaysRemoved) ? config.holidaysRemoved : [];
@@ -571,7 +617,8 @@
     holidayEditIndex: null,
     vacationEditIndex: null,
     dayDetailDate: null,
-    dayCommentFeedbackTimer: null
+    dayCommentFeedbackTimer: null,
+    holidaysNationalFilterYear: ''
   };
 
   function normalizeConfigBalance() {
@@ -974,15 +1021,30 @@
     var rm = state.config.holidaysRemoved || [];
     for (var r = 0; r < rm.length; r++) removedSet[rm[r]] = true;
 
-    var nationalRows = BR_HOLIDAYS_2026.map(function (h) {
-      var inMap = !!holidayMap[h.date];
-      var displayName = inMap ? holidayMap[h.date] : h.name;
-      var statusLabel = inMap ? 'Ativo' : 'Não considerado';
-      var actions = inMap && !removedSet[h.date]
-        ? `<button type="button" class="btn-table" data-holiday-ignore="${h.date}">Não considerar</button>`
-        : `<button type="button" class="btn-table" data-holiday-restore="${h.date}">Restaurar</button>`;
-      return `<tr><td>${h.date}</td><td>${escapeHtml(displayName)}</td><td>Nacional 2026</td><td>${statusLabel}</td><td>${actions}</td></tr>`;
-    }).join('');
+    var fyStr = state.holidaysNationalFilterYear != null && state.holidaysNationalFilterYear !== undefined
+      ? String(state.holidaysNationalFilterYear).trim()
+      : '';
+    var nationalSource = fyStr === ''
+      ? BR_HOLIDAYS_NATIONAL
+      : BR_HOLIDAYS_NATIONAL.filter(function (h) { return h.date.slice(0, 4) === fyStr; });
+    var yearOptionsHtml = '<option value=""' + (fyStr === '' ? ' selected' : '') + '>Todos os anos</option>';
+    var yOpt;
+    for (yOpt = BR_NATIONAL_HOLIDAY_YEAR_FIRST; yOpt <= BR_NATIONAL_HOLIDAY_YEAR_LAST; yOpt++) {
+      yearOptionsHtml += '<option value="' + yOpt + '"' + (fyStr === String(yOpt) ? ' selected' : '') + '>' + yOpt + '</option>';
+    }
+
+    var nationalRows = nationalSource.length
+      ? nationalSource.map(function (h) {
+        var inMap = !!holidayMap[h.date];
+        var displayName = inMap ? holidayMap[h.date] : h.name;
+        var statusLabel = inMap ? 'Ativo' : 'Não considerado';
+        var actions = inMap && !removedSet[h.date]
+          ? `<button type="button" class="btn-table" data-holiday-ignore="${h.date}">Não considerar</button>`
+          : `<button type="button" class="btn-table" data-holiday-restore="${h.date}">Restaurar</button>`;
+        var yr = h.date.slice(0, 4);
+        return `<tr><td>${h.date}</td><td>${escapeHtml(displayName)}</td><td>Nacional (${yr})</td><td>${statusLabel}</td><td>${actions}</td></tr>`;
+      }).join('')
+      : '<tr><td colspan="5">Nenhum feriado nacional neste filtro.</td></tr>';
 
     var extras = state.config.holidaysExtra || [];
     var manualRows = extras.map(function (row, idx) {
@@ -1002,10 +1064,14 @@
 
     container.innerHTML = `
       <div class="holidays-page">
-        <p class="holidays-intro">Feriados nacionais e móveis de 2026 vêm do app; use <strong>Não considerar</strong> se não se aplicam (ex.: ponto facultativo). <strong>Férias</strong> são períodos (data inicial e final): cada dia do intervalo se comporta como feriado no saldo. Horas em <strong>domingo</strong>, <strong>feriado ativo</strong> ou <strong>dia de férias</strong> contam em <strong>dobro</strong> só no saldo.</p>
+        <p class="holidays-intro">Feriados nacionais e móveis do calendário brasileiro (${BR_NATIONAL_HOLIDAY_YEAR_FIRST}–${BR_NATIONAL_HOLIDAY_YEAR_LAST}) vêm do app; use <strong>Não considerar</strong> se não se aplicam (ex.: ponto facultativo). <strong>Férias</strong> são períodos (data inicial e final): cada dia do intervalo se comporta como feriado no saldo. Horas em <strong>domingo</strong>, <strong>feriado ativo</strong> ou <strong>dia de férias</strong> contam em <strong>dobro</strong> só no saldo.</p>
         <p><button type="button" id="btn-add-holiday" class="btn-primary">Adicionar feriado manual</button>
         <button type="button" id="btn-add-vacation" class="btn-primary">Adicionar férias</button></p>
-        <h3 class="holidays-section-title">Nacionais (semente 2026)</h3>
+        <h3 class="holidays-section-title">Nacionais</h3>
+        <div class="holidays-national-filter">
+          <label for="holidays-national-year-filter">Filtrar por ano</label>
+          <select id="holidays-national-year-filter" aria-label="Filtrar feriados nacionais por ano">${yearOptionsHtml}</select>
+        </div>
         <div class="table-wrap">
           <table class="holidays-table">
             <thead><tr><th>Data</th><th>Nome</th><th>Origem</th><th>Status</th><th>Ações</th></tr></thead>
@@ -1033,6 +1099,14 @@
     if (addBtn) addBtn.onclick = function () { openHolidayModal('add'); };
     var addVac = document.getElementById('btn-add-vacation');
     if (addVac) addVac.onclick = function () { openVacationModal('add'); };
+
+    var yearSel = document.getElementById('holidays-national-year-filter');
+    if (yearSel) {
+      yearSel.onchange = function () {
+        state.holidaysNationalFilterYear = yearSel.value || '';
+        renderHolidays();
+      };
+    }
 
     container.querySelectorAll('[data-holiday-ignore]').forEach(function (btn) {
       btn.onclick = async function () {

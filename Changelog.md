@@ -2,6 +2,14 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.31] - 2026-03-30
+
+### Alterado
+
+- **Tooltips** dos ícones de origem do ponto: **“Registrado por GPS”** e **“Registrado ou editado manualmente”**.
+- **Feriados nacionais:** cobertura **2026–2032** (fixos + Carnaval, Sexta Santa e Corpus Christi calculados pela Páscoa gregoriana); substitui a lista só de 2026.
+- **Aba Feriados:** filtro **por ano** na tabela de nacionais; título **“Nacionais”** sem texto “semente”; coluna origem **“Nacional (AAAA)”**; texto introdutório atualizado.
+
 ## [1.0.30] - 2026-03-30
 
 ### Adicionado

@@ -1,0 +1,141 @@
+{
+    "config": {
+      "balance": {
+        "startDate": "2026-03-23",
+        "initialBalanceMinutes": 296,
+        "weekdayMinutes": 540,
+        "fridayMinutes": 480
+      },
+      "holidaysExtra": [],
+      "holidaysRemoved": [],
+      "vacations": [],
+      "dayComments": {},
+      "password": "d46212bc8d47d47e9d4da78633d8eab517e72facfb95b7709ec0fe0acd2762dd"
+    },
+    "records": [
+      {
+        "type": "entrada",
+        "datetime": "2026-03-23T10:51:50.563Z",
+        "source": "gps"
+      },
+      {
+        "type": "saída",
+        "datetime": "2026-03-23T15:18:50.610Z",
+        "source": "gps"
+      },
+      {
+        "type": "entrada",
+        "datetime": "2026-03-23T16:08:17.073Z",
+        "source": "gps"
+      },
+      {
+        "type": "saída",
+        "datetime": "2026-03-23T21:00:41.260Z",
+        "source": "gps"
+      },
+      {
+        "type": "entrada",
+        "datetime": "2026-03-24T10:37:05.452Z",
+        "source": "gps"
+      },
+      {
+        "type": "saída",
+        "datetime": "2026-03-24T14:54:30.951Z",
+        "source": "gps"
+      },
+      {
+        "type": "entrada",
+        "datetime": "2026-03-24T16:09:45.123Z",
+        "source": "gps"
+      },
+      {
+        "type": "saída",
+        "datetime": "2026-03-24T21:27:26.766Z",
+        "source": "gps"
+      },
+      {
+        "type": "entrada",
+        "datetime": "2026-03-25T10:30:23.400Z",
+        "source": "gps"
+      },
+      {
+        "type": "saída",
+        "datetime": "2026-03-25T15:03:54.790Z",
+        "source": "gps"
+      },
+      {
+        "type": "entrada",
+        "datetime": "2026-03-25T15:37:07.319Z",
+        "source": "gps"
+      },
+      {
+        "type": "saída",
+        "datetime": "2026-03-25T21:09:58.202Z",
+        "source": "gps"
+      },
+      {
+        "type": "entrada",
+        "datetime": "2026-03-26T10:09:21.191Z",
+        "source": "gps"
+      },
+      {
+        "type": "saída",
+        "datetime": "2026-03-26T14:45:31.313Z",
+        "source": "gps"
+      },
+      {
+        "type": "entrada",
+        "datetime": "2026-03-26T16:16:54.451Z",
+        "source": "gps"
+      },
+      {
+        "type": "saída",
+        "datetime": "2026-03-26T20:32:47.258Z",
+        "source": "gps"
+      },
+      {
+        "type": "entrada",
+        "datetime": "2026-03-27T10:22:07.843Z",
+        "source": "gps"
+      },
+      {
+        "type": "saída",
+        "datetime": "2026-03-27T14:42:10.854Z",
+        "source": "gps"
+      },
+      {
+        "type": "entrada",
+        "datetime": "2026-03-27T15:21:44.249Z",
+        "source": "gps"
+      },
+      {
+        "type": "saída",
+        "datetime": "2026-03-27T20:05:52.212Z",
+        "source": "gps"
+      },
+      {
+        "type": "entrada",
+        "datetime": "2026-03-30T10:36:23.498Z",
+        "source": "gps"
+      },
+      {
+        "type": "saída",
+        "datetime": "2026-03-30T14:58:26.574Z",
+        "source": "gps"
+      },
+      {
+        "type": "entrada",
+        "datetime": "2026-03-30T16:22:58.874Z",
+        "source": "gps"
+      },
+      {
+        "type": "saída",
+        "datetime": "2026-03-30T21:19:17.748Z",
+        "source": "gps"
+      },
+      {
+        "type": "entrada",
+        "datetime": "2026-03-30T23:29:55.497Z"
+      }
+    ]
+  }
