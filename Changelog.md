@@ -2,6 +2,13 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.24] - 2026-03-30
+
+### Alterado
+
+- **Calendário:** o **número do dia** abre um modal de **detalhes** com a lista de pontos (editar/excluir), botão **+ Ponto** e campo de **comentário do dia**. A lista e o + Ponto deixam de aparecer no card do mês.
+- **Comentários por dia** em `config.dayComments` (mapa `YYYY-MM-DD` → texto); o texto **só** aparece no modal; no calendário, um **ícone** ao lado da data indica que há comentário.
+
 ## [1.0.23] - 2026-03-30
 
 ### Adicionado

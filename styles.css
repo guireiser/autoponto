@@ -266,10 +266,41 @@ body {
   color: #b45309;
   white-space: nowrap;
 }
-.day-number {
+.day-number-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.25rem;
+  flex-wrap: wrap;
+}
+.day-number-btn {
+  font: inherit;
   font-weight: 600;
   font-size: 0.9rem;
-  margin-bottom: 0.25rem;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 4px;
+  text-align: left;
+  line-height: 1.2;
+}
+.day-number-btn:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+.day-number-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+.day-comment-icon {
+  font-size: 0.75rem;
+  line-height: 1;
+  opacity: 0.85;
+  cursor: default;
+  user-select: none;
 }
 .day-holiday-name {
   font-size: 0.68rem;
@@ -321,6 +352,13 @@ body {
 }
 .day-records li:last-child {
   border-bottom: none;
+}
+.day-detail-empty {
+  list-style: none;
+  color: #666;
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+  border: none;
 }
 .record-type {
   font-weight: 700;
@@ -375,6 +413,43 @@ body {
 }
 .modal.active {
   display: flex;
+}
+.modal.modal-over-day {
+  z-index: 1100;
+}
+.modal-content-day-detail {
+  max-width: 420px;
+}
+.day-detail-section-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+}
+.day-detail-comment-label {
+  display: block;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+.day-detail-hint {
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: #666;
+}
+#day-detail-comment {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+#day-detail-save-comment {
+  margin-top: 0.75rem;
+  width: 100%;
 }
 .modal-content {
   background: #fff;

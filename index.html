@@ -35,7 +35,7 @@
     <p>Erro ao carregar os dados.</p>
   </div>
 
-  <div id="modal-edit" class="modal" role="dialog" aria-labelledby="modal-edit-title" aria-modal="true">
+  <div id="modal-edit" class="modal modal-over-day" role="dialog" aria-labelledby="modal-edit-title" aria-modal="true">
     <div class="modal-content">
       <h2 id="modal-edit-title">Editar registro</h2>
       <button type="button" class="modal-close" aria-label="Fechar">×</button>
@@ -54,7 +54,7 @@
     </div>
   </div>
 
-  <div id="modal-add" class="modal" role="dialog" aria-labelledby="modal-add-title" aria-modal="true">
+  <div id="modal-add" class="modal modal-over-day" role="dialog" aria-labelledby="modal-add-title" aria-modal="true">
     <div class="modal-content">
       <h2 id="modal-add-title">Adicionar ponto</h2>
       <button type="button" class="modal-close" aria-label="Fechar">×</button>
@@ -70,6 +70,20 @@
         </label>
         <button type="submit">Adicionar</button>
       </form>
+    </div>
+  </div>
+
+  <div id="modal-day-detail" class="modal" role="dialog" aria-labelledby="modal-day-detail-title" aria-modal="true">
+    <div class="modal-content modal-content-day-detail">
+      <h2 id="modal-day-detail-title">Dia</h2>
+      <button type="button" class="modal-close" aria-label="Fechar">×</button>
+      <p class="day-detail-section-label">Registros</p>
+      <ul id="day-detail-records" class="day-records"></ul>
+      <button type="button" id="day-detail-add-point" class="btn-add-point">+ Ponto</button>
+      <label class="day-detail-comment-label">Comentário do dia <span class="day-detail-hint">(só aparece aqui, não no calendário)</span>
+        <textarea id="day-detail-comment" rows="4" maxlength="2000" autocomplete="off" placeholder="Anotações sobre este dia…"></textarea>
+      </label>
+      <button type="button" id="day-detail-save-comment" class="btn-primary">Salvar comentário</button>
     </div>
   </div>
 

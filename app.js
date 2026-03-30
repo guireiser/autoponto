@@ -116,6 +116,8 @@
       state.records = data.record.records || [];
       normalizeConfigBalance();
       normalizeHolidaysConfig();
+      normalizeVacationsConfig();
+      normalizeDayCommentsConfig();
     }
     return data;
   }
@@ -474,6 +476,32 @@
     state.config.vacations = out;
   }
 
+  function normalizeDayCommentsConfig() {
+    if (!state.config) state.config = {};
+    var raw = state.config.dayComments;
+    var out = {};
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      var keys = Object.keys(raw);
+      var i;
+      for (i = 0; i < keys.length; i++) {
+        var k = keys[i];
+        var key = typeof k === 'string' ? k.slice(0, 10) : '';
+        if (!isValidDateKey(key)) continue;
+        var v = raw[k];
+        var text = typeof v === 'string' ? v.trim() : '';
+        if (text) out[key] = text;
+      }
+    }
+    state.config.dayComments = out;
+  }
+
+  function getDayCommentText(dateKey) {
+    var raw = state.config && state.config.dayComments;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return '';
+    var v = raw[dateKey];
+    return typeof v === 'string' ? v.trim() : '';
+  }
+
   function isPremiumBalanceDay(dateKey, localDate, holidayMap) {
     if (!localDate) return false;
     if (localDate.getDay() === 0) return true;
@@ -523,7 +551,8 @@
     appView: 'calendar',
     appChromeBound: false,
     holidayEditIndex: null,
-    vacationEditIndex: null
+    vacationEditIndex: null,
+    dayDetailDate: null
   };
 
   function normalizeConfigBalance() {
@@ -537,6 +566,7 @@
     normalizeConfigBalance();
     normalizeHolidaysConfig();
     normalizeVacationsConfig();
+    normalizeDayCommentsConfig();
   }
 
   function showScreen(id) {
@@ -718,22 +748,16 @@
       const dayClasses = ['calendar-day'];
       if (isToday) dayClasses.push('today');
       if (isHolidayCell) dayClasses.push('holiday');
+      const hasDayComment = !!getDayCommentText(dateStrLocal);
+      const commentHint = hasDayComment ? 'Há comentário neste dia (veja ao abrir o dia)' : '';
       grid += `<div class="${dayClasses.join(' ')}" data-date="${dateStrLocal}">
-        <div class="day-number">${d}</div>
+        <div class="day-number-row">
+          <button type="button" class="day-number-btn" data-date="${dateStrLocal}" aria-label="Detalhes do dia ${d}">${d}</button>
+          ${hasDayComment ? `<span class="day-comment-icon" title="${escapeHtml(commentHint)}" aria-label="Comentário neste dia">💬</span>` : ''}
+        </div>
         ${isHolidayCell ? `<div class="day-holiday-name" title="${escapeHtml(holidayName)}">${escapeHtml(holidayName)}</div>` : ''}
         <div class="day-total"><span class="day-total-label">Total:</span> <span class="day-hours">${minutes > 0 ? formatMinutes(minutes) : '—'}</span>${showPremiumHint ? ' <span class="day-premium-hint" title="Horas contam em dobro no saldo (domingo, feriado ou férias)">(2× saldo)</span>' : ''}</div>
         <div class="day-balance"><span class="day-balance-label">Saldo:</span> <span class="day-balance-value">${dayBalanceStr}</span></div>
-        <ul class="day-records">${dayRecords.map(r => {
-          const type = normalizeType(r.type);
-          return `
-          <li data-id="${r.id || r.datetime}" class="record-${type}">
-            <span class="record-type">${type === 'entrada' ? 'E' : 'S'}</span>
-            <span class="record-time">${formatRecordTime(r)}</span>
-            <button type="button" class="btn-edit" data-id="${r.id || r.datetime}" aria-label="Editar">✎</button>
-            <button type="button" class="btn-delete" data-id="${r.id || r.datetime}" aria-label="Excluir">×</button>
-          </li>`;
-        }).join('')}</ul>
-        <button type="button" class="btn-add-point" data-date="${dateStrLocal}">+ Ponto</button>
       </div>`;
     }
     grid += '</div></div>';
@@ -764,23 +788,10 @@
       renderCalendar();
     };
 
-    container.querySelectorAll('.btn-edit').forEach(btn => {
-      btn.onclick = () => {
-        const id = btn.getAttribute('data-id');
-        const r = state.records.find(x => (x.id || x.datetime) === id);
-        if (r) openEditModal(r);
-      };
-    });
-    container.querySelectorAll('.btn-delete').forEach(btn => {
-      btn.onclick = () => {
-        const id = btn.getAttribute('data-id');
-        if (confirm('Excluir este registro?')) deleteRecord(id);
-      };
-    });
-    container.querySelectorAll('.btn-add-point').forEach(btn => {
-      btn.onclick = () => {
-        const date = btn.getAttribute('data-date');
-        openAddModal(date);
+    container.querySelectorAll('.day-number-btn').forEach(btn => {
+      btn.onclick = function () {
+        var dk = btn.getAttribute('data-date');
+        if (dk) openDayDetailModal(dk);
       };
     });
   }
@@ -1112,7 +1123,10 @@
   function closeModals() {
     state.editingId = null;
     state.addingForDate = null;
-    document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+    var me = document.getElementById('modal-edit');
+    var ma = document.getElementById('modal-add');
+    if (me) me.classList.remove('active');
+    if (ma) ma.classList.remove('active');
   }
 
   async function saveEdit(e) {
@@ -1127,6 +1141,7 @@
     await persist();
     closeModals();
     renderApp();
+    refreshDayDetailModalIfOpen();
   }
 
   async function saveAdd(e) {
@@ -1140,20 +1155,116 @@
     await persist();
     closeModals();
     renderApp();
+    refreshDayDetailModalIfOpen();
   }
 
   async function deleteRecord(id) {
     state.records = state.records.filter(r => getRecordId(r) !== id);
     await persist();
     renderApp();
+    refreshDayDetailModalIfOpen();
   }
 
   async function persist() {
     normalizeConfigBalance();
     normalizeHolidaysConfig();
     normalizeVacationsConfig();
+    normalizeDayCommentsConfig();
     const body = { config: state.config, records: state.records };
     await apiPut(body);
+  }
+
+  function closeDayDetailModal() {
+    state.dayDetailDate = null;
+    var modal = document.getElementById('modal-day-detail');
+    if (modal) modal.classList.remove('active');
+  }
+
+  function dayDetailRecordsHtml(dayRecords) {
+    return dayRecords.map(function (r) {
+      var type = normalizeType(r.type);
+      return `
+          <li data-id="${r.id || r.datetime}" class="record-${type}">
+            <span class="record-type">${type === 'entrada' ? 'E' : 'S'}</span>
+            <span class="record-time">${formatRecordTime(r)}</span>
+            <button type="button" class="btn-edit" data-id="${r.id || r.datetime}" aria-label="Editar">✎</button>
+            <button type="button" class="btn-delete" data-id="${r.id || r.datetime}" aria-label="Excluir">×</button>
+          </li>`;
+    }).join('');
+  }
+
+  function bindDayDetailRecordButtons() {
+    var modal = document.getElementById('modal-day-detail');
+    if (!modal) return;
+    modal.querySelectorAll('.btn-edit').forEach(function (btn) {
+      btn.onclick = function () {
+        var id = btn.getAttribute('data-id');
+        var r = state.records.find(function (x) { return (x.id || x.datetime) === id; });
+        if (r) openEditModal(r);
+      };
+    });
+    modal.querySelectorAll('.btn-delete').forEach(function (btn) {
+      btn.onclick = function () {
+        var id = btn.getAttribute('data-id');
+        if (confirm('Excluir este registro?')) deleteRecord(id);
+      };
+    });
+  }
+
+  function populateDayDetailModal(dateStrLocal) {
+    var titleEl = document.getElementById('modal-day-detail-title');
+    var ul = document.getElementById('day-detail-records');
+    var ta = document.getElementById('day-detail-comment');
+    if (!titleEl || !ul || !ta) return;
+    var d = parseLocalDateKey(dateStrLocal);
+    var titleStr = d
+      ? d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+      : dateStrLocal;
+    titleEl.textContent = titleStr.charAt(0).toUpperCase() + titleStr.slice(1);
+    var gpsNoiseIds = buildGpsNoiseIdSet(state.records);
+    var dayRecordsAll = getRecordsByDate(state.records, dateStrLocal);
+    var dayRecords = dayRecordsAll.filter(function (r) { return !gpsNoiseIds[getRecordId(r)]; });
+    ul.innerHTML = dayRecords.length
+      ? dayDetailRecordsHtml(dayRecords)
+      : '<li class="day-detail-empty">Sem registros neste dia.</li>';
+    ta.value = getDayCommentText(dateStrLocal);
+    bindDayDetailRecordButtons();
+  }
+
+  function refreshDayDetailModalIfOpen() {
+    var modal = document.getElementById('modal-day-detail');
+    if (!modal || !modal.classList.contains('active') || !state.dayDetailDate) return;
+    populateDayDetailModal(state.dayDetailDate);
+  }
+
+  function openDayDetailModal(dateStrLocal) {
+    state.dayDetailDate = dateStrLocal;
+    var modal = document.getElementById('modal-day-detail');
+    if (!modal) return;
+    populateDayDetailModal(dateStrLocal);
+    modal.classList.add('active');
+  }
+
+  async function saveDayDetailComment() {
+    var dateStrLocal = state.dayDetailDate;
+    if (!dateStrLocal) return;
+    var ta = document.getElementById('day-detail-comment');
+    if (!ta) return;
+    var text = typeof ta.value === 'string' ? ta.value.trim() : '';
+    if (!state.config.dayComments || typeof state.config.dayComments !== 'object' || Array.isArray(state.config.dayComments)) {
+      state.config.dayComments = {};
+    }
+    if (text) state.config.dayComments[dateStrLocal] = text;
+    else delete state.config.dayComments[dateStrLocal];
+    normalizeDayCommentsConfig();
+    try {
+      await persist();
+    } catch (err) {
+      alert(err.message || 'Erro ao salvar.');
+      return;
+    }
+    refreshDayDetailModalIfOpen();
+    renderApp();
   }
 
   var formEdit = document.getElementById('form-edit');
@@ -1183,6 +1294,20 @@
   if (modalAddClose) {
     modalAddClose = modalAddClose.querySelector('.modal-close');
     if (modalAddClose) modalAddClose.addEventListener('click', closeModals);
+  }
+
+  var modalDayDetail = document.getElementById('modal-day-detail');
+  if (modalDayDetail) {
+    var modalDayDetailClose = modalDayDetail.querySelector('.modal-close');
+    if (modalDayDetailClose) modalDayDetailClose.addEventListener('click', closeDayDetailModal);
+    var btnDayAdd = document.getElementById('day-detail-add-point');
+    if (btnDayAdd) {
+      btnDayAdd.addEventListener('click', function () {
+        if (state.dayDetailDate) openAddModal(state.dayDetailDate);
+      });
+    }
+    var btnSaveComment = document.getElementById('day-detail-save-comment');
+    if (btnSaveComment) btnSaveComment.addEventListener('click', saveDayDetailComment);
   }
 
   function showError(message) {
