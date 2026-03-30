@@ -132,7 +132,21 @@ O bin armazena um único objeto JSON:
 - **config.balance** (opcional): `startDate` (`YYYY-MM-DD`, primeiro dia incluso na soma trabalhado − esperado), `initialBalanceMinutes` (saldo antes desse dia), `weekdayMinutes` (meta seg–qui), `fridayMinutes` (meta sexta). Se omitido, o app usa os defaults do código (equivalente ao exemplo acima).
 - **config.holidaysExtra** (opcional): lista de `{ "date": "YYYY-MM-DD", "name": "..." }` — feriados adicionados na interface (data local).
 - **config.holidaysRemoved** (opcional): lista de `YYYY-MM-DD` da semente nacional 2026 que não devem ser tratadas como feriado (nem cor no calendário nem dobro no saldo). A lista fixa de 2026 está em `app.js` (`BR_HOLIDAYS_2026`).
-- **records**: lista de registros de ponto; cada item tem `type` (`"entrada"` ou `"saída"`) e `datetime` (ISO 8601). A página ordena por `datetime` e calcula as horas por dia somando os intervalos entre cada par entrada → saída.
+- **records**: lista de registros de ponto; cada item tem `type` (`"entrada"` ou `"saída"`) e `datetime` (ISO 8601). Opcionalmente `source` (`"gps"` pelo atalho, `"manual"` pela web) e `editedInApp` após edição na interface. A página ordena por `datetime` e calcula as horas por dia somando os intervalos entre cada par entrada → saída.
+
+### Migração: todos os registros como GPS (JSONBin)
+
+Se quiser marcar **de uma vez** todos os itens de `records` com `source: "gps"` e remover `editedInApp` (útil para dados antigos), use o script local com os **mesmos** Bin ID e Master Key do Worker (Node.js **18+**):
+
+```powershell
+$env:JSONBIN_BIN_ID='seu-bin-id'
+# Aspas simples na key: valores com $ são corrompidos em aspas duplas no PowerShell
+$env:JSONBIN_MASTER_KEY='sua-master-key-copiada-do-jsonbin'
+node scripts/migrate-all-records-gps.js --dry-run
+node scripts/migrate-all-records-gps.js
+```
+
+O `--dry-run` só mostra quantos registros seriam alterados, sem gravar.
 
 ---
 

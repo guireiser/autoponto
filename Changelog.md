@@ -2,6 +2,18 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.29] - 2026-03-30
+
+### Alterado
+
+- **Ícone GPS** nos registros: troca para **contorno** no estilo seta de localização (ponta em diagonal, interior vazio), alinhado ao símbolo de Serviços de localização da Apple.
+
+## [1.0.28] - 2026-03-30
+
+### Adicionado
+
+- Script **`scripts/migrate-all-records-gps.js`**: migração pontual no JSONBin — define `source: 'gps'` em **todos** os registros e remove `editedInApp`. Uso com `JSONBIN_BIN_ID` e `JSONBIN_MASTER_KEY` (mesmos do Worker); opção `--dry-run`.
+
 ## [1.0.27] - 2026-03-30
 
 ### Adicionado

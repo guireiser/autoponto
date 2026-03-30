@@ -184,7 +184,8 @@
   }
 
   /** Ícones de origem: seta GPS (atalho), lápis (web ou edição no app). */
-  var ICON_GPS_SVG = '<svg class="record-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" focusable="false"><path fill="currentColor" d="M12 2.5L19.5 12h-5.25v9.5H9.75V12H4.5L12 2.5z"/></svg>';
+  /** Contorno estilo seta de “Serviços de localização” (ponta ~NE, interior vazio). */
+  var ICON_GPS_SVG = '<svg class="record-icon-svg record-icon-gps-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="none" focusable="false"><path stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" d="M3 11l19-9-9 18-2-8-8-2z"/></svg>';
   var ICON_MANUAL_SVG = '<svg class="record-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.55" stroke-linejoin="round" d="M5 19h9a2 2 0 002-2v-5"/><path fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" d="M15.5 4.5l5 5M9 15l-3.5.5.5-3.5L15.5 4.5z"/></svg>';
 
   function recordSourceIconsHtml(r) {
