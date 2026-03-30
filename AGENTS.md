@@ -12,13 +12,13 @@ Contexto para agentes e contribuidores.
 
 - **Configuração injetada no deploy:** `config.template.js` (placeholder `{{WORKER_BASE_URL}}`). `config.js` é gerado no workflow e não é versionado. Localmente: `config.local.js` (ver `config.local.example.js`). No `index.html`, em produção (`github.io`) carrega `config.js` + `app.js`; em desenvolvimento tenta `config.local.js` antes de `app.js`.
 - **Atalho iOS:** POST ao Worker com token no header — documentado no README e em `workers/autoponto-punch/README.md`. Deploy de referência: `https://autoponto-punch.reiser-gui.workers.dev` (`/` ou `/punch`).
-- **Lógica da aplicação:** `app.js` — lê `window.APP_CONFIG` (`WORKER_BASE_URL`), obtém sessão com `POST /auth/login` ou `POST /auth/setup`, guarda JWT em **sessionStorage**, usa `GET/PUT /api/bin` com `Authorization: Bearer`, timeout 12s nas requisições e failsafe 16s em “Carregando…”, renderiza calendário e modais, calcula horas por dia (data local; entrada +2 min / saída −2 min), normaliza `config.balance` ao persistir. Compatibilidade: evita optional chaining na inicialização.
+- **Lógica da aplicação:** `app.js` — lê `window.APP_CONFIG` (`WORKER_BASE_URL`), obtém sessão com `POST /auth/login` ou `POST /auth/setup`, guarda JWT em **sessionStorage**, usa `GET/PUT /api/bin` com `Authorization: Bearer`, timeout 12s nas requisições e failsafe 16s em “Carregando…”, renderiza calendário, aba Feriados e modais, calcula horas por dia (data local; entrada +2 min / saída −2 min), normaliza `config.balance` e `config.holidaysExtra` / `config.holidaysRemoved` ao persistir. Feriados: semente `BR_HOLIDAYS_2026` + mapa `buildHolidayMap`; no saldo, domingo ou feriado ativo **dobra** minutos trabalhados. Compatibilidade: evita optional chaining na inicialização.
 - **Versão do app:** `config.json` → campo `version` (Changelog e referência).
 
 ## Fluxo de dados
 
 1. **Carregamento:** Se existir JWT em `sessionStorage`, `GET /api/bin`; se 401, limpa token. Senão `GET /auth/meta` → tela login ou “Definir senha”. Após login/setup bem-sucedido, grava token e mostra o calendário.
-2. **Calendário:** Mesmas regras de antes (`state.records`, totais, saldo, etc.).
+2. **Calendário / Feriados:** `state.records`, totais (tempo real), saldo (com dobro em domingo e feriado ativo), `config` com feriados.
 3. **Alterações:** `PUT /api/bin` com JWT; o Worker reincorpora `config.password` do bin antes de gravar.
 4. **Atalho iOS:** POST com `SHORTCUT_TOKEN`; Worker GET/PUT no JSONBin.
 

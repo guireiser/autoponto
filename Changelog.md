@@ -2,6 +2,13 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.19] - 2026-03-30
+
+### Adicionado
+
+- **Feriados 2026 (Brasil):** semente no app com feriados nacionais e móveis (Carnaval, Sexta Santa, Corpus Christi, etc.); destaque visual no calendário; aba **Feriados** para feriados manuais e para ignorar/restaurar entradas da semente (`config.holidaysExtra`, `config.holidaysRemoved`).
+- **Saldo:** em **domingo** ou em **feriado ativo**, as horas trabalhadas contam **em dobro** apenas no cálculo do saldo (o total exibido por dia permanece o tempo real); dica “(2× saldo)” quando aplicável.
+
 ## [1.0.18] - 2026-03-26
 
 ### Segurança / arquitetura

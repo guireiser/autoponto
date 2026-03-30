@@ -5,7 +5,8 @@ Aplicativo estático de controle de ponto de trabalho para publicar no GitHub Pa
 ## Funcionalidades
 
 - **Calendário mensal** com registros de entrada e saída por dia
-- **Total de horas por dia** (rótulo "Total:" em cada dia), **Saldo:** cumulativo ao fim daquele dia (em hoje e dias futuros mostra **—**), **total do mês** e **saldo até ontem** na barra (mesma regra de cálculo; padrão: +4h56 antes de 2026-03-23; seg–qui 9h, sex 8h, fim de semana 0 — ver `config.balance` no bin)
+- **Total de horas por dia** (rótulo "Total:" em cada dia), **Saldo:** cumulativo ao fim daquele dia (em hoje e dias futuros mostra **—**), **total do mês** e **saldo até ontem** na barra (mesma regra de cálculo; padrão: +4h56 antes de 2026-03-23; seg–qui 9h, sex 8h, fim de semana 0 — ver `config.balance` no bin). Em **domingo** ou em **feriado ativo**, as horas trabalhadas entram **em dobro** só no cálculo do saldo (o "Total:" do dia continua sendo o tempo real).
+- **Feriados:** semente com feriados nacionais e principais móveis de **2026** (inclui Carnaval e Corpus Christi; desative os que forem só ponto facultativo na sua rotina). Aba **Feriados** para incluir datas manuais, editar nome e restaurar / ignorar os da semente. Dias feriado aparecem com estilo distinto no calendário.
 - **Cálculo de horas trabalhadas** por dia (soma dos intervalos entre cada par entrada → saída), com agrupamento por data local do navegador (evita deslocamento de dia por UTC). Regra fixa: horário efetivo da **entrada** = registro **+2 min**; da **saída** = registro **−2 min** (o armazenamento segue o horário real batido ou digitado).
 - **Edição manual**: adicionar, editar horário e excluir registros (ao adicionar ponto em um dia, a data do dia já vem preenchida)
 - **Senha de acesso** à página (definida na primeira vez e armazenada no bin)
@@ -114,7 +115,11 @@ O bin armazena um único objeto JSON:
       "initialBalanceMinutes": 296,
       "weekdayMinutes": 540,
       "fridayMinutes": 480
-    }
+    },
+    "holidaysExtra": [
+      { "date": "2026-03-26", "name": "Feriado municipal (exemplo)" }
+    ],
+    "holidaysRemoved": ["2026-02-16"]
   },
   "records": [
     { "type": "entrada", "datetime": "2025-03-17T08:00:00.000Z" },
@@ -124,7 +129,9 @@ O bin armazena um único objeto JSON:
 ```
 
 - **config.password**: definido na primeira vez que você acessa a página; usado para exibir a tela de login nas próximas vezes.
-- **config.balance** (opcional): `startDate` (`YYYY-MM-DD`, primeiro dia incluso na soma trabalhado − esperado), `initialBalanceMinutes` (saldo antes desse dia), `weekdayMinutes` (meta seg–qui), `fridayMinutes` (meta sexta). Se omitido, o app usa os defaults do código (equivalente ao exemplo acima). Feriados não entram na v1.
+- **config.balance** (opcional): `startDate` (`YYYY-MM-DD`, primeiro dia incluso na soma trabalhado − esperado), `initialBalanceMinutes` (saldo antes desse dia), `weekdayMinutes` (meta seg–qui), `fridayMinutes` (meta sexta). Se omitido, o app usa os defaults do código (equivalente ao exemplo acima).
+- **config.holidaysExtra** (opcional): lista de `{ "date": "YYYY-MM-DD", "name": "..." }` — feriados adicionados na interface (data local).
+- **config.holidaysRemoved** (opcional): lista de `YYYY-MM-DD` da semente nacional 2026 que não devem ser tratadas como feriado (nem cor no calendário nem dobro no saldo). A lista fixa de 2026 está em `app.js` (`BR_HOLIDAYS_2026`).
 - **records**: lista de registros de ponto; cada item tem `type` (`"entrada"` ou `"saída"`) e `datetime` (ISO 8601). A página ordena por `datetime` e calcula as horas por dia somando os intervalos entre cada par entrada → saída.
 
 ---

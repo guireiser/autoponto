@@ -16,9 +16,19 @@
   </div>
 
   <div id="screen-app" class="screen">
-    <main id="calendar-container">
+    <header class="app-header">
+      <nav class="app-tabs" aria-label="Seções">
+        <button type="button" id="tab-calendar" class="app-tab active">Calendário</button>
+        <button type="button" id="tab-holidays" class="app-tab">Feriados</button>
+      </nav>
+      <button type="button" id="btn-logout" class="btn-logout">Sair</button>
+    </header>
+    <div id="view-calendar" class="app-view active" aria-hidden="false">
+      <!-- Preenchido por app.js: navegação do mês + grade -->
+    </div>
+    <div id="view-holidays" class="app-view" aria-hidden="true">
       <!-- Preenchido por app.js -->
-    </main>
+    </div>
   </div>
 
   <div id="screen-error" class="screen">
@@ -59,6 +69,22 @@
           <input type="datetime-local" id="add-datetime" required>
         </label>
         <button type="submit">Adicionar</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="modal-holiday" class="modal" role="dialog" aria-labelledby="modal-holiday-title" aria-modal="true">
+    <div class="modal-content">
+      <h2 id="modal-holiday-title">Feriado manual</h2>
+      <button type="button" class="modal-close" aria-label="Fechar">×</button>
+      <form id="form-holiday">
+        <label>Data
+          <input type="date" id="holiday-date" required>
+        </label>
+        <label>Nome
+          <input type="text" id="holiday-name" required maxlength="120" autocomplete="off">
+        </label>
+        <button type="submit">Salvar</button>
       </form>
     </div>
   </div>
