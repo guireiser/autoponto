@@ -43,6 +43,16 @@ function normalizeType(type) {
   return type;
 }
 
+/** Atalho sem extra → GPS; `source: 'manual'` ou `manual: true` no JSON → registro manual no bin. */
+function recordSourceFromShortcutBody(body) {
+  if (!body || typeof body !== 'object') return 'gps';
+  if (body.manual === true) return 'manual';
+  if (body.manual === 'true') return 'manual';
+  const s = body.source;
+  if (typeof s === 'string' && s.trim().toLowerCase() === 'manual') return 'manual';
+  return 'gps';
+}
+
 function sortRecords(records) {
   return [...(records || [])].sort((a, b) => {
     const ta = new Date(a.datetime).getTime();
@@ -279,7 +289,8 @@ async function handlePunch(request, env, c) {
 
   const config = record.config && typeof record.config === 'object' ? record.config : {};
   const records = Array.isArray(record.records) ? record.records : [];
-  const nextRecords = sortRecords([...records, { type, datetime, source: 'gps' }]);
+  const source = recordSourceFromShortcutBody(body);
+  const nextRecords = sortRecords([...records, { type, datetime, source }]);
   const putBody = { config, records: nextRecords };
 
   const putRes = await jsonBinPut(binId, masterKey, putBody);
@@ -287,7 +298,7 @@ async function handlePunch(request, env, c) {
     return jsonResponse({ ok: false, error: 'jsonbin_put_failed', status: putRes.status }, 502, c);
   }
 
-  return jsonResponse({ ok: true, type, datetime }, 200, c);
+  return jsonResponse({ ok: true, type, datetime, source }, 200, c);
 }
 
 async function requireSession(request, env, c) {

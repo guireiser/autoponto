@@ -46,10 +46,11 @@ Quem clonar o repositório e fizer deploy na própria conta terá outro subdomí
 - **POST** `/` ou `/punch`
 - Header: `Authorization: Bearer <SHORTCUT_TOKEN>` **ou** `X-Autoponto-Token: <SHORTCUT_TOKEN>`
 - Corpo JSON: `type` (`entrada`, `saída` ou `saida`); `datetime` opcional (ISO 8601)
+- **Origem no bin** (opcional):
+  - **Omissão** (atalho “normal”): grava com **`source: 'gps'`** (ícone de GPS no app).
+  - **Manual:** inclua **`"source": "manual"`** ou **`"manual": true`** no mesmo JSON — grava com **`source: 'manual'`** (ícone de lápis), para atalhos “entrada/saída manual” no iPhone.
 
-Cada registro gravado pelo atalho inclui **`source: 'gps'`** no bin (a interface web usa isso para o ícone de GPS).
-
-Resposta `200`: `{ "ok": true, "type": "...", "datetime": "..." }`.
+Resposta `200`: `{ "ok": true, "type": "...", "datetime": "...", "source": "gps" | "manual" }`.
 
 ---
 

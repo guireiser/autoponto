@@ -2,6 +2,16 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.30] - 2026-03-30
+
+### Adicionado
+
+- **Worker (POST atalho):** corpo JSON opcional **`"source": "manual"`** ou **`"manual": true`** grava o registro como **manual** (`source: 'manual'` no bin); sem isso mantém **`source: 'gps'`**. Resposta inclui `"source": "gps" | "manual"`.
+
+### Documentação
+
+- README e `workers/autoponto-punch/README.md`: como configurar atalhos “manual” no iOS frente ao atalho GPS.
+
 ## [1.0.29] - 2026-03-30
 
 ### Alterado

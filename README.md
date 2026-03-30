@@ -65,13 +65,16 @@ O site no GitHub Pages não expõe POST. O app **Atalhos** envia um único **POS
 - **Corpo** (JSON):
   - `type`: `"entrada"` ou `"saída"` (também aceita `saida` sem acento)
   - `datetime`: opcional, string ISO 8601; se omitir, o Worker usa o instante atual (UTC)
+  - **GPS (padrão):** não envie nada extra — o Worker grava `source: 'gps'` (ícone de seta no app).
+  - **Manual pelo atalho:** no dicionário JSON, inclua **`source`** com texto **`manual`** **ou** a chave booleana **`manual`** com valor **verdadeiro** (`true`). O Worker grava `source: 'manual'` (ícone de lápis).
 
-Resposta em caso de sucesso: `{ "ok": true, "type": "...", "datetime": "..." }`.
+Resposta em caso de sucesso: `{ "ok": true, "type": "...", "datetime": "...", "source": "gps" | "manual" }`.
 
 **Montar o atalho no app Atalhos**
 
 1. (Opcional) **Data atual** → **Formatar data** → ISO 8601, se quiser enviar o horário do aparelho em vez do instante do servidor.
 2. **Dicionário** com `type` (texto fixo `entrada` ou `saída`) e, se quiser, `datetime` (resultado do passo 1).
+   - **Atalho “manual” (entrada/saída autoponto manual):** no mesmo dicionário, adicione uma entrada **`source`** = texto **`manual`** *ou* **`manual`** = **Verdadeiro** (booleano do Atalhos). O atalho **GPS** antigo **não** deve ter essas chaves.
 3. **Obter conteúdo da URL**
    - URL: a do Worker (`/` ou `/punch`)
    - Método: POST
@@ -79,7 +82,7 @@ Resposta em caso de sucesso: `{ "ok": true, "type": "...", "datetime": "..." }`.
    - Corpo da solicitação: **JSON** — o dicionário do passo 2
 4. **Mostrar notificação** (ex.: “Ponto registrado”).
 
-Dois atalhos separados (“Bater entrada” / “Bater saída”) com `type` fixo dispensam o passo opcional de data e qualquer pergunta.
+Dois atalhos separados (“Bater entrada” / “Bater saída”) com `type` fixo dispensam o passo opcional de data e qualquer pergunta. Para **quatro** atalhos (entrada GPS, saída GPS, entrada manual, saída manual), os dois manuais repetem o passo 2 com `source` ou `manual` como acima.
 
 **Limite:** dois registros quase simultâneos podem competir (GET → PUT no JSONBin); para uso pessoal é raro.
 
@@ -132,7 +135,7 @@ O bin armazena um único objeto JSON:
 - **config.balance** (opcional): `startDate` (`YYYY-MM-DD`, primeiro dia incluso na soma trabalhado − esperado), `initialBalanceMinutes` (saldo antes desse dia), `weekdayMinutes` (meta seg–qui), `fridayMinutes` (meta sexta). Se omitido, o app usa os defaults do código (equivalente ao exemplo acima).
 - **config.holidaysExtra** (opcional): lista de `{ "date": "YYYY-MM-DD", "name": "..." }` — feriados adicionados na interface (data local).
 - **config.holidaysRemoved** (opcional): lista de `YYYY-MM-DD` da semente nacional 2026 que não devem ser tratadas como feriado (nem cor no calendário nem dobro no saldo). A lista fixa de 2026 está em `app.js` (`BR_HOLIDAYS_2026`).
-- **records**: lista de registros de ponto; cada item tem `type` (`"entrada"` ou `"saída"`) e `datetime` (ISO 8601). Opcionalmente `source` (`"gps"` pelo atalho, `"manual"` pela web) e `editedInApp` após edição na interface. A página ordena por `datetime` e calcula as horas por dia somando os intervalos entre cada par entrada → saída.
+- **records**: lista de registros de ponto; cada item tem `type` (`"entrada"` ou `"saída"`) e `datetime` (ISO 8601). Opcionalmente `source` (`"gps"` pelo atalho padrão, `"manual"` pela web ou atalho com `source`/`manual` no POST) e `editedInApp` após edição na interface. A página ordena por `datetime` e calcula as horas por dia somando os intervalos entre cada par entrada → saída.
 
 ### Migração: todos os registros como GPS (JSONBin)
 
