@@ -2,6 +2,12 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.22] - 2026-03-30
+
+### Alterado
+
+- **Calendário (telas estreitas):** largura mínima horizontal de cada célula aumentada em **25%** (de 7,5rem para 9,375rem), mantendo rolagem horizontal quando necessário.
+
 ## [1.0.21] - 2026-03-30
 
 ### Adicionado

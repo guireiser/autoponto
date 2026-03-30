@@ -213,7 +213,7 @@ body {
 
 .calendar-weekdays {
   display: grid;
-  grid-template-columns: repeat(7, minmax(7.5rem, 1fr));
+  grid-template-columns: repeat(7, minmax(9.375rem, 1fr));
   gap: 2px;
   margin-bottom: 4px;
   font-size: 0.75rem;
@@ -221,14 +221,14 @@ body {
   color: #666;
   text-align: center;
   width: 100%;
-  min-width: calc(7 * 7.5rem + 12px);
+  min-width: calc(7 * 9.375rem + 12px);
 }
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(7.5rem, 1fr));
+  grid-template-columns: repeat(7, minmax(9.375rem, 1fr));
   gap: 2px;
   width: 100%;
-  min-width: calc(7 * 7.5rem + 12px);
+  min-width: calc(7 * 9.375rem + 12px);
 }
 
 .calendar-day {
