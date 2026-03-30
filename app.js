@@ -348,6 +348,48 @@
     return key && parseLocalDateKey(key) !== null;
   }
 
+  function mergePremiumDayLabel(map, dateKey, label) {
+    var L = label && String(label).trim() ? String(label).trim() : 'Férias';
+    var existing = map[dateKey];
+    if (!existing) {
+      map[dateKey] = L;
+      return;
+    }
+    if (existing === L) return;
+    var parts = String(existing).split(' · ');
+    for (var p = 0; p < parts.length; p++) {
+      if (parts[p] === L) return;
+    }
+    map[dateKey] = existing + ' · ' + L;
+  }
+
+  function applyVacationRangesToMap(map, config) {
+    var list = config && Array.isArray(config.vacations) ? config.vacations : [];
+    var i;
+    for (i = 0; i < list.length; i++) {
+      var v = list[i];
+      if (!v || typeof v !== 'object') continue;
+      var s = typeof v.startDate === 'string' ? v.startDate.slice(0, 10) : '';
+      var e = typeof v.endDate === 'string' ? v.endDate.slice(0, 10) : '';
+      if (!isValidDateKey(s) || !isValidDateKey(e)) continue;
+      if (compareDateKeys(s, e) > 0) {
+        var tmp = s;
+        s = e;
+        e = tmp;
+      }
+      var nm = typeof v.name === 'string' && v.name.trim() ? v.name.trim() : 'Férias';
+      var cur = s;
+      var guard = 0;
+      while (compareDateKeys(cur, e) <= 0 && guard < 5000) {
+        mergePremiumDayLabel(map, cur, nm);
+        var nx = addOneDayToDateKey(cur);
+        if (!nx || nx === cur) break;
+        cur = nx;
+        guard++;
+      }
+    }
+  }
+
   function buildHolidayMap(config) {
     var map = {};
     var i;
@@ -369,6 +411,7 @@
       var nm = typeof ex.name === 'string' && ex.name.trim() ? ex.name.trim() : 'Feriado';
       map[dk] = nm;
     }
+    applyVacationRangesToMap(map, config);
     return map;
   }
 
@@ -401,6 +444,34 @@
     }
     remOut.sort(compareDateKeys);
     state.config.holidaysRemoved = remOut;
+  }
+
+  function normalizeVacationsConfig() {
+    if (!state.config) state.config = {};
+    var raw = state.config.vacations;
+    if (!Array.isArray(raw)) raw = [];
+    var out = [];
+    var j;
+    for (j = 0; j < raw.length; j++) {
+      var v = raw[j];
+      if (!v || typeof v !== 'object') continue;
+      var s = typeof v.startDate === 'string' ? v.startDate.slice(0, 10) : '';
+      var e = typeof v.endDate === 'string' ? v.endDate.slice(0, 10) : '';
+      if (!isValidDateKey(s) || !isValidDateKey(e)) continue;
+      if (compareDateKeys(s, e) > 0) {
+        var swap = s;
+        s = e;
+        e = swap;
+      }
+      var name = typeof v.name === 'string' && v.name.trim() ? v.name.trim() : 'Férias';
+      out.push({ startDate: s, endDate: e, name: name });
+    }
+    out.sort(function (a, b) {
+      var c = compareDateKeys(a.startDate, b.startDate);
+      if (c !== 0) return c;
+      return compareDateKeys(a.endDate, b.endDate);
+    });
+    state.config.vacations = out;
   }
 
   function isPremiumBalanceDay(dateKey, localDate, holidayMap) {
@@ -451,7 +522,8 @@
     addingForDate: null,
     appView: 'calendar',
     appChromeBound: false,
-    holidayEditIndex: null
+    holidayEditIndex: null,
+    vacationEditIndex: null
   };
 
   function normalizeConfigBalance() {
@@ -464,6 +536,7 @@
     state.records = (record && record.records) || [];
     normalizeConfigBalance();
     normalizeHolidaysConfig();
+    normalizeVacationsConfig();
   }
 
   function showScreen(id) {
@@ -648,7 +721,7 @@
       grid += `<div class="${dayClasses.join(' ')}" data-date="${dateStrLocal}">
         <div class="day-number">${d}</div>
         ${isHolidayCell ? `<div class="day-holiday-name" title="${escapeHtml(holidayName)}">${escapeHtml(holidayName)}</div>` : ''}
-        <div class="day-total"><span class="day-total-label">Total:</span> <span class="day-hours">${minutes > 0 ? formatMinutes(minutes) : '—'}</span>${showPremiumHint ? ' <span class="day-premium-hint" title="Horas contam em dobro no saldo">(2× saldo)</span>' : ''}</div>
+        <div class="day-total"><span class="day-total-label">Total:</span> <span class="day-hours">${minutes > 0 ? formatMinutes(minutes) : '—'}</span>${showPremiumHint ? ' <span class="day-premium-hint" title="Horas contam em dobro no saldo (domingo, feriado ou férias)">(2× saldo)</span>' : ''}</div>
         <div class="day-balance"><span class="day-balance-label">Saldo:</span> <span class="day-balance-value">${dayBalanceStr}</span></div>
         <ul class="day-records">${dayRecords.map(r => {
           const type = normalizeType(r.type);
@@ -783,10 +856,77 @@
     renderHolidays();
   }
 
+  function openVacationModal(mode, index) {
+    state.vacationEditIndex = mode === 'edit' && typeof index === 'number' ? index : null;
+    const modal = document.getElementById('modal-vacation');
+    const title = document.getElementById('modal-vacation-title');
+    const startIn = document.getElementById('vacation-start');
+    const endIn = document.getElementById('vacation-end');
+    const nameIn = document.getElementById('vacation-name');
+    if (!modal || !startIn || !endIn || !nameIn) return;
+    if (title) title.textContent = mode === 'edit' ? 'Editar férias' : 'Adicionar férias';
+    if (mode === 'edit' && state.vacationEditIndex !== null) {
+      var row = state.config.vacations[state.vacationEditIndex];
+      startIn.value = row ? row.startDate : '';
+      endIn.value = row ? row.endDate : '';
+      nameIn.value = row && row.name !== 'Férias' ? row.name : '';
+    } else {
+      startIn.value = '';
+      endIn.value = '';
+      nameIn.value = '';
+    }
+    modal.classList.add('active');
+    startIn.focus();
+  }
+
+  function closeVacationModal() {
+    state.vacationEditIndex = null;
+    const modal = document.getElementById('modal-vacation');
+    if (modal) modal.classList.remove('active');
+  }
+
+  async function saveVacationForm(e) {
+    e.preventDefault();
+    const startIn = document.getElementById('vacation-start');
+    const endIn = document.getElementById('vacation-end');
+    const nameIn = document.getElementById('vacation-name');
+    if (!startIn || !endIn || !nameIn) return;
+    var s = startIn.value;
+    var en = endIn.value;
+    if (!isValidDateKey(s) || !isValidDateKey(en)) return;
+    var nm = nameIn.value.trim();
+    if (!nm) nm = 'Férias';
+    var backup = JSON.stringify(state.config.vacations || []);
+    var list = Array.isArray(state.config.vacations) ? state.config.vacations.slice() : [];
+    if (state.vacationEditIndex !== null) {
+      var ix = state.vacationEditIndex;
+      if (list[ix]) list[ix] = { startDate: s.slice(0, 10), endDate: en.slice(0, 10), name: nm };
+    } else {
+      list.push({ startDate: s.slice(0, 10), endDate: en.slice(0, 10), name: nm });
+    }
+    state.config.vacations = list;
+    normalizeVacationsConfig();
+    try {
+      await persist();
+    } catch (err) {
+      try {
+        state.config.vacations = JSON.parse(backup);
+      } catch (_) {
+        state.config.vacations = [];
+      }
+      normalizeVacationsConfig();
+      alert(err.message || 'Erro ao salvar.');
+      return;
+    }
+    closeVacationModal();
+    renderHolidays();
+  }
+
   function renderHolidays() {
     const container = document.getElementById('view-holidays');
     if (!container) return;
     normalizeHolidaysConfig();
+    normalizeVacationsConfig();
     var holidayMap = buildHolidayMap(state.config);
     var removedSet = {};
     var rm = state.config.holidaysRemoved || [];
@@ -810,10 +950,19 @@
       </td></tr>`;
     }).join('');
 
+    var vacs = state.config.vacations || [];
+    var vacationRows = vacs.map(function (row, vidx) {
+      return `<tr><td>${row.startDate}</td><td>${row.endDate}</td><td>${escapeHtml(row.name)}</td><td>
+        <button type="button" class="btn-table" data-vacation-edit="${vidx}">Editar</button>
+        <button type="button" class="btn-table danger" data-vacation-delete="${vidx}">Excluir</button>
+      </td></tr>`;
+    }).join('');
+
     container.innerHTML = `
       <div class="holidays-page">
-        <p class="holidays-intro">Feriados nacionais e móveis de 2026 vêm do app; use <strong>Não considerar</strong> se não se aplicam (ex.: ponto facultativo). Horas em <strong>domingo</strong> ou em <strong>feriado ativo</strong> contam em <strong>dobro</strong> só no saldo.</p>
-        <p><button type="button" id="btn-add-holiday" class="btn-primary">Adicionar feriado manual</button></p>
+        <p class="holidays-intro">Feriados nacionais e móveis de 2026 vêm do app; use <strong>Não considerar</strong> se não se aplicam (ex.: ponto facultativo). <strong>Férias</strong> são períodos (data inicial e final): cada dia do intervalo se comporta como feriado no saldo. Horas em <strong>domingo</strong>, <strong>feriado ativo</strong> ou <strong>dia de férias</strong> contam em <strong>dobro</strong> só no saldo.</p>
+        <p><button type="button" id="btn-add-holiday" class="btn-primary">Adicionar feriado manual</button>
+        <button type="button" id="btn-add-vacation" class="btn-primary">Adicionar férias</button></p>
         <h3 class="holidays-section-title">Nacionais (semente 2026)</h3>
         <div class="table-wrap">
           <table class="holidays-table">
@@ -828,11 +977,20 @@
             <tbody>${manualRows || '<tr><td colspan="5">Nenhum feriado manual.</td></tr>'}</tbody>
           </table>
         </div>
+        <h3 class="holidays-section-title">Férias</h3>
+        <div class="table-wrap">
+          <table class="holidays-table">
+            <thead><tr><th>Início</th><th>Fim</th><th>Nome</th><th>Ações</th></tr></thead>
+            <tbody>${vacationRows || '<tr><td colspan="4">Nenhum período de férias.</td></tr>'}</tbody>
+          </table>
+        </div>
       </div>
     `;
 
     var addBtn = document.getElementById('btn-add-holiday');
     if (addBtn) addBtn.onclick = function () { openHolidayModal('add'); };
+    var addVac = document.getElementById('btn-add-vacation');
+    if (addVac) addVac.onclick = function () { openVacationModal('add'); };
 
     container.querySelectorAll('[data-holiday-ignore]').forEach(function (btn) {
       btn.onclick = async function () {
@@ -882,6 +1040,30 @@
         ex.splice(idx, 1);
         state.config.holidaysExtra = ex;
         normalizeHolidaysConfig();
+        try {
+          await persist();
+        } catch (err) {
+          alert(err.message || 'Erro ao salvar.');
+        }
+        renderHolidays();
+      };
+    });
+
+    container.querySelectorAll('[data-vacation-edit]').forEach(function (btn) {
+      btn.onclick = function () {
+        var idx = parseInt(btn.getAttribute('data-vacation-edit'), 10);
+        if (!isNaN(idx)) openVacationModal('edit', idx);
+      };
+    });
+
+    container.querySelectorAll('[data-vacation-delete]').forEach(function (btn) {
+      btn.onclick = async function () {
+        var idx = parseInt(btn.getAttribute('data-vacation-delete'), 10);
+        if (isNaN(idx) || !confirm('Excluir este período de férias?')) return;
+        var list = (state.config.vacations || []).slice();
+        list.splice(idx, 1);
+        state.config.vacations = list;
+        normalizeVacationsConfig();
         try {
           await persist();
         } catch (err) {
@@ -969,6 +1151,7 @@
   async function persist() {
     normalizeConfigBalance();
     normalizeHolidaysConfig();
+    normalizeVacationsConfig();
     const body = { config: state.config, records: state.records };
     await apiPut(body);
   }
@@ -979,10 +1162,17 @@
   if (formAdd) formAdd.addEventListener('submit', saveAdd);
   var formHoliday = document.getElementById('form-holiday');
   if (formHoliday) formHoliday.addEventListener('submit', saveHolidayForm);
+  var formVacation = document.getElementById('form-vacation');
+  if (formVacation) formVacation.addEventListener('submit', saveVacationForm);
   var modalHoliday = document.getElementById('modal-holiday');
   if (modalHoliday) {
     var modalHolidayClose = modalHoliday.querySelector('.modal-close');
     if (modalHolidayClose) modalHolidayClose.addEventListener('click', closeHolidayModal);
+  }
+  var modalVacation = document.getElementById('modal-vacation');
+  if (modalVacation) {
+    var modalVacationClose = modalVacation.querySelector('.modal-close');
+    if (modalVacationClose) modalVacationClose.addEventListener('click', closeVacationModal);
   }
   var modalEditClose = document.getElementById('modal-edit');
   if (modalEditClose) {

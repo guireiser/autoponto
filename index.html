@@ -89,6 +89,25 @@
     </div>
   </div>
 
+  <div id="modal-vacation" class="modal" role="dialog" aria-labelledby="modal-vacation-title" aria-modal="true">
+    <div class="modal-content">
+      <h2 id="modal-vacation-title">Férias</h2>
+      <button type="button" class="modal-close" aria-label="Fechar">×</button>
+      <form id="form-vacation">
+        <label>Data de início
+          <input type="date" id="vacation-start" required>
+        </label>
+        <label>Data de fim
+          <input type="date" id="vacation-end" required>
+        </label>
+        <label>Nome (opcional)
+          <input type="text" id="vacation-name" maxlength="120" autocomplete="off" placeholder="Férias">
+        </label>
+        <button type="submit">Salvar</button>
+      </form>
+    </div>
+  </div>
+
   <script src="config.js"></script>
   <script>
     (function () {

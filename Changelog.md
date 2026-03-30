@@ -2,6 +2,12 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.23] - 2026-03-30
+
+### Adicionado
+
+- **Férias:** na aba Feriados, cadastro de períodos com **data de início** e **data de fim** (nome opcional; padrão “Férias”). Cada dia do intervalo entra no mapa como feriado: **mesmo destaque no calendário**, **nome no card** e **dobro das horas no saldo** (como domingo/feriado). Dados em `config.vacations` no bin.
+
 ## [1.0.22] - 2026-03-30
 
 ### Alterado

@@ -49,7 +49,8 @@ body {
 #screen-login form,
 #modal-edit form,
 #modal-add form,
-#modal-holiday form {
+#modal-holiday form,
+#modal-vacation form {
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -58,7 +59,8 @@ body {
 #screen-login label,
 #modal-edit label,
 #modal-add label,
-#modal-holiday label {
+#modal-holiday label,
+#modal-vacation label {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -68,6 +70,7 @@ body {
 #modal-edit input,
 #modal-add input,
 #modal-holiday input,
+#modal-vacation input,
 #modal-edit select,
 #modal-add select {
   padding: 0.5rem 0.75rem;
@@ -78,7 +81,8 @@ body {
 #screen-login button,
 #modal-edit button[type="submit"],
 #modal-add button[type="submit"],
-#modal-holiday button[type="submit"] {
+#modal-holiday button[type="submit"],
+#modal-vacation button[type="submit"] {
   padding: 0.6rem 1rem;
   font-size: 1rem;
   background: #2563eb;
@@ -90,7 +94,8 @@ body {
 #screen-login button:hover,
 #modal-edit button[type="submit"]:hover,
 #modal-add button[type="submit"]:hover,
-#modal-holiday button[type="submit"]:hover {
+#modal-holiday button[type="submit"]:hover,
+#modal-vacation button[type="submit"]:hover {
   background: #1d4ed8;
 }
 
@@ -408,6 +413,12 @@ body {
   color: #444;
   margin: 0 0 1rem;
   line-height: 1.45;
+}
+.holidays-page > p:has(.btn-primary) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
 }
 .holidays-section-title {
   font-size: 1rem;
