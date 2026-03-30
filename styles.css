@@ -407,6 +407,28 @@ body {
 .record-time {
   flex: 1;
 }
+.record-source-icons {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+.record-source-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+.record-icon-svg {
+  display: block;
+}
+.record-source-gps {
+  color: #007aff;
+}
+.record-source-manual {
+  color: #333;
+}
 .btn-edit,
 .btn-delete {
   padding: 2px 6px;
@@ -468,11 +490,6 @@ body {
   display: block;
   margin-top: 1rem;
   font-size: 0.9rem;
-}
-.day-detail-hint {
-  font-weight: 400;
-  font-size: 0.8rem;
-  color: #666;
 }
 #day-detail-comment {
   display: block;

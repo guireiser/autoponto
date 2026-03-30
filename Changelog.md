@@ -2,6 +2,21 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.27] - 2026-03-30
+
+### Adicionado
+
+- **Origem do registro:** cada batida pode ter `source: 'gps'` (criada pelo **atalho** no Worker) ou `source: 'manual'` (criada pela **web**); após **editar** no app, `editedInApp: true`. No calendário e no modal aparecem ícones: **seta** (GPS) e **lápis / anotação** (manual ou editado); se for GPS e depois editado na web, aparecem **os dois**.
+
+### Alterado
+
+- **Calendário:** título do mês no formato **Mês/Ano** (ex.: Março/2026).
+- **Modal do dia:** removido o texto explicativo do comentário (“só aparece aqui…”).
+
+### Worker (`autoponto-punch`)
+
+- POST do atalho passa a gravar registros com `source: 'gps'`.
+
 ## [1.0.26] - 2026-03-30
 
 ### Alterado

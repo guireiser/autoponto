@@ -279,7 +279,7 @@ async function handlePunch(request, env, c) {
 
   const config = record.config && typeof record.config === 'object' ? record.config : {};
   const records = Array.isArray(record.records) ? record.records : [];
-  const nextRecords = sortRecords([...records, { type, datetime }]);
+  const nextRecords = sortRecords([...records, { type, datetime, source: 'gps' }]);
   const putBody = { config, records: nextRecords };
 
   const putRes = await jsonBinPut(binId, masterKey, putBody);

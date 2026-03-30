@@ -183,6 +183,23 @@
     return r.id || r.datetime;
   }
 
+  /** Ícones de origem: seta GPS (atalho), lápis (web ou edição no app). */
+  var ICON_GPS_SVG = '<svg class="record-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" focusable="false"><path fill="currentColor" d="M12 2.5L19.5 12h-5.25v9.5H9.75V12H4.5L12 2.5z"/></svg>';
+  var ICON_MANUAL_SVG = '<svg class="record-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.55" stroke-linejoin="round" d="M5 19h9a2 2 0 002-2v-5"/><path fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" d="M15.5 4.5l5 5M9 15l-3.5.5.5-3.5L15.5 4.5z"/></svg>';
+
+  function recordSourceIconsHtml(r) {
+    if (!r) return '';
+    var parts = [];
+    if (r.source === 'gps') {
+      parts.push('<span class="record-source-icon record-source-gps" title="Registrado pelo atalho (GPS)">' + ICON_GPS_SVG + '</span>');
+    }
+    if (r.source === 'manual' || r.editedInApp === true) {
+      parts.push('<span class="record-source-icon record-source-manual" title="Inserido ou editado no app">' + ICON_MANUAL_SVG + '</span>');
+    }
+    if (!parts.length) return '';
+    return '<span class="record-source-icons">' + parts.join('') + '</span>';
+  }
+
   /** Pares consecutivos (ordem global por data/hora real) entrada/saída com intervalo menor que 5 min (real): fora da UI e do saldo; registros permanecem no bin. */
   const GPS_GLITCH_PAIR_MAX_MS = 5 * 60 * 1000;
 
@@ -776,7 +793,11 @@
     const nav = `
       <nav class="calendar-nav">
         <button type="button" id="btn-prev-month" aria-label="Mês anterior">‹</button>
-        <span class="calendar-title">${firstDay.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
+        <span class="calendar-title">${(function () {
+          var mn = firstDay.toLocaleDateString('pt-BR', { month: 'long' });
+          var cap = mn.charAt(0).toUpperCase() + mn.slice(1);
+          return cap + '/' + firstDay.getFullYear();
+        })()}</span>
         <button type="button" id="btn-next-month" aria-label="Próximo mês">›</button>
         <div class="calendar-nav-totals">
           <span class="calendar-balance" aria-label="Saldo de horas até ontem">Saldo até ontem: ${balanceStr}</span>
@@ -1146,7 +1167,7 @@
     const iso = new Date(datetime).toISOString();
     const idx = state.records.findIndex(r => getRecordId(r) === state.editingId);
     if (idx === -1) { closeModals(); return; }
-    state.records[idx] = { ...state.records[idx], type, datetime: iso };
+    state.records[idx] = { ...state.records[idx], type, datetime: iso, editedInApp: true };
     await persist();
     closeModals();
     renderApp();
@@ -1159,7 +1180,7 @@
     const datetime = document.getElementById('add-datetime').value;
     if (!datetime) return;
     const iso = new Date(datetime).toISOString();
-    state.records.push({ type, datetime: iso });
+    state.records.push({ type, datetime: iso, source: 'manual' });
     state.records = sortRecords(state.records);
     await persist();
     closeModals();
@@ -1199,6 +1220,7 @@
           <li class="record-${type} day-record-calendar">
             <span class="record-type">${type === 'entrada' ? 'E' : 'S'}</span>
             <span class="record-time">${formatRecordTime(r)}</span>
+            ${recordSourceIconsHtml(r)}
           </li>`;
     }).join('');
   }
@@ -1210,6 +1232,7 @@
           <li data-id="${r.id || r.datetime}" class="record-${type}">
             <span class="record-type">${type === 'entrada' ? 'E' : 'S'}</span>
             <span class="record-time">${formatRecordTime(r)}</span>
+            ${recordSourceIconsHtml(r)}
             <button type="button" class="btn-edit" data-id="${r.id || r.datetime}" aria-label="Editar">✎</button>
             <button type="button" class="btn-delete" data-id="${r.id || r.datetime}" aria-label="Excluir">×</button>
           </li>`;
