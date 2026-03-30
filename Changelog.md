@@ -2,6 +2,22 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.21] - 2026-03-30
+
+### Adicionado
+
+- **Calendário:** no card do dia, exibição do **nome do feriado** quando a data está ativa no mapa (semente 2026 ou manual).
+
+### Alterado
+
+- **GPS / batidas espúrias:** pares **consecutivos** no tempo (todos os registros ordenados por data/hora **real**) do tipo entrada seguida de saída ou o inverso, com intervalo **menor que 5 minutos** (sem usar o ajuste de ±2 min), **não aparecem** na lista do dia, **não entram** no total do dia nem no saldo; os registros **continuam salvos** no JSONBin.
+
+## [1.0.20] - 2026-03-30
+
+### Alterado
+
+- **Calendário em telas estreitas:** células mantêm largura mínima (~7,5rem por coluna); a grade passa a ter **rolagem horizontal** em vez de comprimir os cards e quebrar muito o texto. Removido `flex-wrap` nas linhas de registro no breakpoint mobile.
+
 ## [1.0.19] - 2026-03-30
 
 ### Adicionado

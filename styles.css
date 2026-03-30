@@ -205,20 +205,30 @@ body {
   border-color: #c00;
 }
 
+.calendar-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
 .calendar-weekdays {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(7.5rem, 1fr));
   gap: 2px;
   margin-bottom: 4px;
   font-size: 0.75rem;
   font-weight: 600;
   color: #666;
   text-align: center;
+  width: 100%;
+  min-width: calc(7 * 7.5rem + 12px);
 }
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(7.5rem, 1fr));
   gap: 2px;
+  width: 100%;
+  min-width: calc(7 * 7.5rem + 12px);
 }
 
 .calendar-day {
@@ -255,6 +265,16 @@ body {
   font-weight: 600;
   font-size: 0.9rem;
   margin-bottom: 0.25rem;
+}
+.day-holiday-name {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #b45309;
+  line-height: 1.2;
+  margin: -0.1rem 0 0.35rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .day-total {
   font-size: 0.8rem;
@@ -452,9 +472,6 @@ body {
   .calendar-day {
     min-height: 80px;
     padding: 0.35rem;
-  }
-  .day-records li {
-    flex-wrap: wrap;
   }
   .btn-edit, .btn-delete {
     margin-left: auto;

@@ -177,6 +177,46 @@
     return type;
   }
 
+  function getRecordId(r) {
+    return r.id || r.datetime;
+  }
+
+  /** Pares consecutivos (ordem global por data/hora real) entrada/saída com intervalo menor que 5 min (real): fora da UI e do saldo; registros permanecem no bin. */
+  const GPS_GLITCH_PAIR_MAX_MS = 5 * 60 * 1000;
+
+  function getRawRecordMs(record) {
+    const t = new Date(record.datetime).getTime();
+    return Number.isNaN(t) ? NaN : t;
+  }
+
+  function buildGpsNoiseIdSet(records) {
+    const sorted = sortRecords(records);
+    const set = {};
+    let i = 0;
+    while (i < sorted.length - 1) {
+      const a = sorted[i];
+      const b = sorted[i + 1];
+      const ta = getRawRecordMs(a);
+      const tb = getRawRecordMs(b);
+      if (Number.isNaN(ta) || Number.isNaN(tb)) {
+        i += 1;
+        continue;
+      }
+      const typeA = normalizeType(a.type);
+      const typeB = normalizeType(b.type);
+      const opposite = (typeA === 'entrada' && typeB === 'saída') || (typeA === 'saída' && typeB === 'entrada');
+      const dt = tb - ta;
+      if (opposite && dt >= 0 && dt < GPS_GLITCH_PAIR_MAX_MS) {
+        set[getRecordId(a)] = true;
+        set[getRecordId(b)] = true;
+        i += 2;
+      } else {
+        i += 1;
+      }
+    }
+    return set;
+  }
+
   function getCalculationMs(record) {
     const raw = new Date(record.datetime).getTime();
     if (Number.isNaN(raw)) return NaN;
@@ -369,8 +409,9 @@
     return !!(holidayMap && holidayMap[dateKey]);
   }
 
-  function computeBalanceUpTo(records, endDateKey, cfg, holidayMap) {
+  function computeBalanceUpTo(records, endDateKey, cfg, holidayMap, gpsNoiseIds) {
     holidayMap = holidayMap || {};
+    gpsNoiseIds = gpsNoiseIds || {};
     var total = cfg.initialBalanceMinutes;
     if (!cfg.startDate || compareDateKeys(endDateKey, cfg.startDate) < 0) return total;
     var cur = cfg.startDate;
@@ -379,7 +420,9 @@
       var d = parseLocalDateKey(cur);
       if (!d) break;
       var expected = expectedMinutesForLocalDate(d, cfg);
-      var rawWorked = minutesWorkedInDay(getRecordsByDate(records, cur));
+      var dayAll = getRecordsByDate(records, cur);
+      var dayForBalance = dayAll.filter(function (r) { return !gpsNoiseIds[getRecordId(r)]; });
+      var rawWorked = minutesWorkedInDay(dayForBalance);
       var premium = isPremiumBalanceDay(cur, d, holidayMap);
       var effectiveWorked = premium ? rawWorked * 2 : rawWorked;
       total += effectiveWorked - expected;
@@ -577,30 +620,34 @@
     const daysInMonth = lastDay.getDate();
 
     const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    let grid = '<div class="calendar-weekdays">' + weekDays.map(d => `<span>${d}</span>`).join('') + '</div><div class="calendar-grid">';
+    let grid = '<div class="calendar-scroll"><div class="calendar-weekdays">' + weekDays.map(d => `<span>${d}</span>`).join('') + '</div><div class="calendar-grid">';
     for (let i = 0; i < start; i++) grid += '<div class="calendar-day empty"></div>';
     const balanceCfg = mergeBalanceConfig(state.config);
     const holidayMap = buildHolidayMap(state.config);
+    const gpsNoiseIds = buildGpsNoiseIdSet(state.records);
     const yesterdayKey = yesterdayLocalDateKey();
     let totalMonthMinutes = 0;
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStrLocal = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const dayRecords = getRecordsByDate(state.records, dateStrLocal);
+      const dayRecordsAll = getRecordsByDate(state.records, dateStrLocal);
+      const dayRecords = dayRecordsAll.filter(r => !gpsNoiseIds[getRecordId(r)]);
       const minutes = minutesWorkedInDay(dayRecords);
       totalMonthMinutes += minutes;
       const isToday = dateStrLocal === dateStr(new Date());
-      const isHolidayCell = !!holidayMap[dateStrLocal];
+      const holidayName = holidayMap[dateStrLocal];
+      const isHolidayCell = !!holidayName;
       const dParsed = parseLocalDateKey(dateStrLocal);
       const premium = isPremiumBalanceDay(dateStrLocal, dParsed, holidayMap);
       const showPremiumHint = minutes > 0 && premium;
       const dayBalanceStr = compareDateKeys(dateStrLocal, yesterdayKey) <= 0
-        ? formatSignedBalanceMinutes(computeBalanceUpTo(state.records, dateStrLocal, balanceCfg, holidayMap))
+        ? formatSignedBalanceMinutes(computeBalanceUpTo(state.records, dateStrLocal, balanceCfg, holidayMap, gpsNoiseIds))
         : '—';
       const dayClasses = ['calendar-day'];
       if (isToday) dayClasses.push('today');
       if (isHolidayCell) dayClasses.push('holiday');
       grid += `<div class="${dayClasses.join(' ')}" data-date="${dateStrLocal}">
         <div class="day-number">${d}</div>
+        ${isHolidayCell ? `<div class="day-holiday-name" title="${escapeHtml(holidayName)}">${escapeHtml(holidayName)}</div>` : ''}
         <div class="day-total"><span class="day-total-label">Total:</span> <span class="day-hours">${minutes > 0 ? formatMinutes(minutes) : '—'}</span>${showPremiumHint ? ' <span class="day-premium-hint" title="Horas contam em dobro no saldo">(2× saldo)</span>' : ''}</div>
         <div class="day-balance"><span class="day-balance-label">Saldo:</span> <span class="day-balance-value">${dayBalanceStr}</span></div>
         <ul class="day-records">${dayRecords.map(r => {
@@ -616,9 +663,9 @@
         <button type="button" class="btn-add-point" data-date="${dateStrLocal}">+ Ponto</button>
       </div>`;
     }
-    grid += '</div>';
+    grid += '</div></div>';
     const monthTotalStr = totalMonthMinutes > 0 ? formatMinutes(totalMonthMinutes) : '—';
-    const balanceMinutes = computeBalanceUpTo(state.records, yesterdayKey, balanceCfg, holidayMap);
+    const balanceMinutes = computeBalanceUpTo(state.records, yesterdayKey, balanceCfg, holidayMap, gpsNoiseIds);
     const balanceStr = formatSignedBalanceMinutes(balanceMinutes);
     const nav = `
       <nav class="calendar-nav">
@@ -859,10 +906,6 @@
     setAppViewVisibility(state.appView);
     if (state.appView === 'holidays') renderHolidays();
     else renderCalendar();
-  }
-
-  function getRecordId(r) {
-    return r.id || r.datetime;
   }
 
   function openEditModal(record) {
