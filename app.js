@@ -758,11 +758,10 @@
       grid += `<div class="${dayClasses.join(' ')}" data-date="${dateStrLocal}">
         <button type="button" class="day-open-detail" data-date="${dateStrLocal}" title="${escapeHtml(openLabel)}" aria-label="${escapeHtml(openLabel)}">
           <span class="day-open-detail-num">${d}</span>
-          <span class="day-open-detail-mid">
-            <span class="day-open-detail-text">Mais detalhes</span>
+          <span class="day-open-detail-trail">
             <span class="day-open-detail-chevron" aria-hidden="true">›</span>
+            ${hasDayComment ? `<span class="day-comment-icon" title="${escapeHtml(commentHint)}" aria-label="Comentário neste dia">💬</span>` : '<span class="day-open-detail-slot" aria-hidden="true"></span>'}
           </span>
-          ${hasDayComment ? `<span class="day-comment-icon" title="${escapeHtml(commentHint)}" aria-label="Comentário neste dia">💬</span>` : '<span class="day-open-detail-slot" aria-hidden="true"></span>'}
         </button>
         ${isHolidayCell ? `<div class="day-holiday-name" title="${escapeHtml(holidayName)}">${escapeHtml(holidayName)}</div>` : ''}
         <div class="day-total"><span class="day-total-label">Total:</span> <span class="day-hours">${minutes > 0 ? formatMinutes(minutes) : '—'}</span>${showPremiumHint ? ' <span class="day-premium-hint" title="Horas contam em dobro no saldo (domingo, feriado ou férias)">(2× saldo)</span>' : ''}</div>

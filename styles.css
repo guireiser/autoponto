@@ -299,27 +299,19 @@ body {
   min-width: 1.5rem;
   color: #111827;
 }
-.day-open-detail-mid {
+.day-open-detail-trail {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.15rem;
+  gap: 0.25rem;
   min-width: 0;
 }
-.day-open-detail-text {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #2563eb;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
 .day-open-detail-chevron {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 300;
   color: #2563eb;
   line-height: 1;
-  margin-top: -0.05em;
 }
 .day-open-detail-slot {
   min-width: 1rem;

@@ -2,6 +2,12 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.26] - 2026-03-30
+
+### Alterado
+
+- **Calendário:** botão de abrir detalhes do dia sem o rótulo “Mais detalhes” (mantidos número, chevron e ícone de comentário quando houver).
+
 ## [1.0.25] - 2026-03-30
 
 ### Alterado
