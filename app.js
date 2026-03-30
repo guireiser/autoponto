@@ -618,7 +618,12 @@
     vacationEditIndex: null,
     dayDetailDate: null,
     dayCommentFeedbackTimer: null,
-    holidaysNationalFilterYear: ''
+    holidaysNationalFilterYear: (function () {
+      var y = new Date().getFullYear();
+      if (y < BR_NATIONAL_HOLIDAY_YEAR_FIRST) return String(BR_NATIONAL_HOLIDAY_YEAR_FIRST);
+      if (y > BR_NATIONAL_HOLIDAY_YEAR_LAST) return String(BR_NATIONAL_HOLIDAY_YEAR_LAST);
+      return String(y);
+    })()
   };
 
   function normalizeConfigBalance() {

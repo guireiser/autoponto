@@ -2,6 +2,12 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.32] - 2026-03-30
+
+### Alterado
+
+- **Feriados:** filtro por ano dos nacionais inicia no **ano atual** (dentro de 2026–2032); “Todos os anos” continua disponível.
+
 ## [1.0.31] - 2026-03-30
 
 ### Alterado
