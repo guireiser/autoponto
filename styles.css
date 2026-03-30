@@ -266,41 +266,87 @@ body {
   color: #b45309;
   white-space: nowrap;
 }
-.day-number-row {
+.day-open-detail {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  margin-bottom: 0.25rem;
-  flex-wrap: wrap;
-}
-.day-number-btn {
+  width: 100%;
+  margin: 0 0 0.4rem;
+  padding: 0.35rem 0.4rem;
+  box-sizing: border-box;
   font: inherit;
-  font-weight: 600;
-  font-size: 0.9rem;
-  padding: 0;
-  margin: 0;
-  border: none;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  border-radius: 4px;
   text-align: left;
+  cursor: pointer;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fafafa 0%, #f3f4f6 100%);
+  color: #1a1a1a;
   line-height: 1.2;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.day-number-btn:hover {
-  color: #2563eb;
-  text-decoration: underline;
+.day-open-detail:hover {
+  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #93c5fd;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.12);
 }
-.day-number-btn:focus-visible {
+.day-open-detail:focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
+}
+.day-open-detail-num {
+  font-weight: 700;
+  font-size: 1rem;
+  min-width: 1.5rem;
+  color: #111827;
+}
+.day-open-detail-mid {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.day-open-detail-text {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #2563eb;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.day-open-detail-chevron {
+  font-size: 1.1rem;
+  font-weight: 300;
+  color: #2563eb;
+  line-height: 1;
+  margin-top: -0.05em;
+}
+.day-open-detail-slot {
+  min-width: 1rem;
+  flex-shrink: 0;
 }
 .day-comment-icon {
   font-size: 0.75rem;
   line-height: 1;
-  opacity: 0.85;
-  cursor: default;
+  opacity: 0.9;
+  cursor: inherit;
   user-select: none;
+  flex-shrink: 0;
+}
+.day-records-calendar {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid #eee;
+}
+.day-record-calendar .record-time {
+  flex: 1;
+}
+.day-calendar-empty {
+  list-style: none;
+  color: #888;
+  font-size: 0.78rem;
+  padding: 0.2rem 0;
+  border: none;
 }
 .day-holiday-name {
   font-size: 0.68rem;
@@ -450,6 +496,30 @@ body {
 #day-detail-save-comment {
   margin-top: 0.75rem;
   width: 100%;
+}
+#day-detail-save-comment.is-busy {
+  opacity: 0.75;
+  cursor: wait;
+}
+#day-detail-save-comment.is-success-flash {
+  background: #059669;
+  border-color: #047857;
+}
+#day-detail-save-comment.is-success-flash:hover {
+  background: #047857;
+}
+.day-detail-save-feedback {
+  margin: 0.6rem 0 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  box-sizing: border-box;
+}
+.day-detail-save-feedback.is-success {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
 }
 .modal-content {
   background: #fff;

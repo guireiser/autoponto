@@ -2,6 +2,13 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.25] - 2026-03-30
+
+### Alterado
+
+- **Calendário:** a **lista de pontos** volta a aparecer no card (somente leitura); **editar/excluir** só no modal. Faixa **“Mais detalhes”** com chevron e estilo de botão deixa explícito que a data abre o painel completo.
+- **Modal do dia:** após **Salvar comentário**, mensagem de sucesso visível (`aria-live`), botão passa a **“Salvo ✓”** em verde por alguns segundos e o estado de envio usa feedback de ocupado.
+
 ## [1.0.24] - 2026-03-30
 
 ### Alterado

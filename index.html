@@ -83,7 +83,8 @@
       <label class="day-detail-comment-label">Comentário do dia <span class="day-detail-hint">(só aparece aqui, não no calendário)</span>
         <textarea id="day-detail-comment" rows="4" maxlength="2000" autocomplete="off" placeholder="Anotações sobre este dia…"></textarea>
       </label>
-      <button type="button" id="day-detail-save-comment" class="btn-primary">Salvar comentário</button>
+      <button type="button" id="day-detail-save-comment" class="btn-primary" data-label-default="Salvar comentário">Salvar comentário</button>
+      <p id="day-detail-comment-feedback" class="day-detail-save-feedback" role="status" aria-live="polite" hidden></p>
     </div>
   </div>
 

@@ -552,7 +552,8 @@
     appChromeBound: false,
     holidayEditIndex: null,
     vacationEditIndex: null,
-    dayDetailDate: null
+    dayDetailDate: null,
+    dayCommentFeedbackTimer: null
   };
 
   function normalizeConfigBalance() {
@@ -749,15 +750,24 @@
       if (isToday) dayClasses.push('today');
       if (isHolidayCell) dayClasses.push('holiday');
       const hasDayComment = !!getDayCommentText(dateStrLocal);
-      const commentHint = hasDayComment ? 'Há comentário neste dia (veja ao abrir o dia)' : '';
+      const commentHint = hasDayComment ? 'Há comentário neste dia (veja nos detalhes)' : '';
+      const dLabel = dParsed
+        ? dParsed.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+        : dateStrLocal;
+      const openLabel = 'Abrir detalhes: ' + dLabel;
       grid += `<div class="${dayClasses.join(' ')}" data-date="${dateStrLocal}">
-        <div class="day-number-row">
-          <button type="button" class="day-number-btn" data-date="${dateStrLocal}" aria-label="Detalhes do dia ${d}">${d}</button>
-          ${hasDayComment ? `<span class="day-comment-icon" title="${escapeHtml(commentHint)}" aria-label="Comentário neste dia">💬</span>` : ''}
-        </div>
+        <button type="button" class="day-open-detail" data-date="${dateStrLocal}" title="${escapeHtml(openLabel)}" aria-label="${escapeHtml(openLabel)}">
+          <span class="day-open-detail-num">${d}</span>
+          <span class="day-open-detail-mid">
+            <span class="day-open-detail-text">Mais detalhes</span>
+            <span class="day-open-detail-chevron" aria-hidden="true">›</span>
+          </span>
+          ${hasDayComment ? `<span class="day-comment-icon" title="${escapeHtml(commentHint)}" aria-label="Comentário neste dia">💬</span>` : '<span class="day-open-detail-slot" aria-hidden="true"></span>'}
+        </button>
         ${isHolidayCell ? `<div class="day-holiday-name" title="${escapeHtml(holidayName)}">${escapeHtml(holidayName)}</div>` : ''}
         <div class="day-total"><span class="day-total-label">Total:</span> <span class="day-hours">${minutes > 0 ? formatMinutes(minutes) : '—'}</span>${showPremiumHint ? ' <span class="day-premium-hint" title="Horas contam em dobro no saldo (domingo, feriado ou férias)">(2× saldo)</span>' : ''}</div>
         <div class="day-balance"><span class="day-balance-label">Saldo:</span> <span class="day-balance-value">${dayBalanceStr}</span></div>
+        <ul class="day-records day-records-calendar">${calendarDayRecordsPreviewHtml(dayRecords)}</ul>
       </div>`;
     }
     grid += '</div></div>';
@@ -788,7 +798,7 @@
       renderCalendar();
     };
 
-    container.querySelectorAll('.day-number-btn').forEach(btn => {
+    container.querySelectorAll('.day-open-detail').forEach(btn => {
       btn.onclick = function () {
         var dk = btn.getAttribute('data-date');
         if (dk) openDayDetailModal(dk);
@@ -1180,6 +1190,20 @@
     if (modal) modal.classList.remove('active');
   }
 
+  function calendarDayRecordsPreviewHtml(dayRecords) {
+    if (!dayRecords.length) {
+      return '<li class="day-calendar-empty">Nenhum ponto neste dia.</li>';
+    }
+    return dayRecords.map(function (r) {
+      var type = normalizeType(r.type);
+      return `
+          <li class="record-${type} day-record-calendar">
+            <span class="record-type">${type === 'entrada' ? 'E' : 'S'}</span>
+            <span class="record-time">${formatRecordTime(r)}</span>
+          </li>`;
+    }).join('');
+  }
+
   function dayDetailRecordsHtml(dayRecords) {
     return dayRecords.map(function (r) {
       var type = normalizeType(r.type);
@@ -1211,6 +1235,43 @@
     });
   }
 
+  function clearDayCommentSaveFeedback() {
+    var el = document.getElementById('day-detail-comment-feedback');
+    if (el) {
+      el.textContent = '';
+      el.className = 'day-detail-save-feedback';
+      el.setAttribute('hidden', 'hidden');
+    }
+    if (state.dayCommentFeedbackTimer) {
+      clearTimeout(state.dayCommentFeedbackTimer);
+      state.dayCommentFeedbackTimer = null;
+    }
+    var btn = document.getElementById('day-detail-save-comment');
+    if (btn) {
+      btn.classList.remove('is-success-flash');
+      var def = btn.getAttribute('data-label-default');
+      if (def) btn.textContent = def;
+    }
+  }
+
+  function showDayCommentSavedFeedback() {
+    var el = document.getElementById('day-detail-comment-feedback');
+    if (el) {
+      el.textContent = 'Comentário salvo com sucesso.';
+      el.className = 'day-detail-save-feedback is-success';
+      el.removeAttribute('hidden');
+    }
+    var btn = document.getElementById('day-detail-save-comment');
+    if (btn) {
+      btn.textContent = 'Salvo ✓';
+      btn.classList.add('is-success-flash');
+    }
+    if (state.dayCommentFeedbackTimer) clearTimeout(state.dayCommentFeedbackTimer);
+    state.dayCommentFeedbackTimer = setTimeout(function () {
+      clearDayCommentSaveFeedback();
+    }, 4000);
+  }
+
   function populateDayDetailModal(dateStrLocal) {
     var titleEl = document.getElementById('modal-day-detail-title');
     var ul = document.getElementById('day-detail-records');
@@ -1231,9 +1292,11 @@
     bindDayDetailRecordButtons();
   }
 
-  function refreshDayDetailModalIfOpen() {
+  function refreshDayDetailModalIfOpen(opts) {
+    var clearFb = !opts || opts.clearCommentFeedback !== false;
     var modal = document.getElementById('modal-day-detail');
     if (!modal || !modal.classList.contains('active') || !state.dayDetailDate) return;
+    if (clearFb) clearDayCommentSaveFeedback();
     populateDayDetailModal(state.dayDetailDate);
   }
 
@@ -1241,6 +1304,7 @@
     state.dayDetailDate = dateStrLocal;
     var modal = document.getElementById('modal-day-detail');
     if (!modal) return;
+    clearDayCommentSaveFeedback();
     populateDayDetailModal(dateStrLocal);
     modal.classList.add('active');
   }
@@ -1257,14 +1321,28 @@
     if (text) state.config.dayComments[dateStrLocal] = text;
     else delete state.config.dayComments[dateStrLocal];
     normalizeDayCommentsConfig();
+    var saveBtn = document.getElementById('day-detail-save-comment');
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.classList.add('is-busy');
+    }
     try {
       await persist();
     } catch (err) {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('is-busy');
+      }
       alert(err.message || 'Erro ao salvar.');
       return;
     }
-    refreshDayDetailModalIfOpen();
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.classList.remove('is-busy');
+    }
+    refreshDayDetailModalIfOpen({ clearCommentFeedback: false });
     renderApp();
+    showDayCommentSavedFeedback();
   }
 
   var formEdit = document.getElementById('form-edit');
