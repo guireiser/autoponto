@@ -1,4 +1,4 @@
-// Gerado no deploy: o workflow substitui os marcadores __…__ no objeto (não altere os nomes).
+// Gerado no deploy: o workflow substitui "https://w1.test/workers" e {"a.greiser.dev":"https://w2.test/"}.
 // Não commitar config.js com valores reais.
 window.APP_CONFIG = {
   WORKER_BASE_URL: __WORKER_BASE_URL_JSON__,

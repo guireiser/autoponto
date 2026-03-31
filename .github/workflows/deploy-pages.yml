@@ -24,14 +24,33 @@ jobs:
       - name: Generate config.js
         env:
           AUTOPONTO_WORKER_URL: ${{ secrets.AUTOPONTO_WORKER_URL }}
+          AUTOPONTO_WORKER_BY_HOST: ${{ secrets.AUTOPONTO_WORKER_BY_HOST }}
         run: |
-          node -e "
+          node <<'NODE'
           const fs = require('fs');
-          const t = fs.readFileSync('config.template.js', 'utf8');
           const url = (process.env.AUTOPONTO_WORKER_URL || '').trim();
-          const out = t.replace('{{WORKER_BASE_URL}}', url);
-          fs.writeFileSync('config.js', out);
-          "
+          let byHost = {};
+          try {
+            const raw = (process.env.AUTOPONTO_WORKER_BY_HOST || '').trim();
+            if (raw) {
+              const p = JSON.parse(raw);
+              if (p && typeof p === 'object' && !Array.isArray(p)) {
+                for (const k of Object.keys(p)) {
+                  const v = p[k];
+                  if (typeof v === 'string' && v.trim() !== '') {
+                    byHost[String(k).toLowerCase()] = v.trim().replace(/\/+$/, '');
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('AUTOPONTO_WORKER_BY_HOST ignorado (JSON inválido).');
+          }
+          let tpl = fs.readFileSync('config.template.js', 'utf8');
+          tpl = tpl.replace('__WORKER_BASE_URL_JSON__', JSON.stringify(url));
+          tpl = tpl.replace('__WORKER_BY_HOST_JSON__', JSON.stringify(byHost));
+          fs.writeFileSync('config.js', tpl);
+          NODE
 
       - name: Prepare site directory
         run: |

@@ -10,7 +10,7 @@ Aplicativo estático de controle de ponto de trabalho para publicar no GitHub Pa
 - **Cálculo de horas trabalhadas** por dia (soma dos intervalos entre cada par entrada → saída), com agrupamento por data local do navegador (evita deslocamento de dia por UTC). Regra fixa: horário efetivo da **entrada** = registro **+2 min**; da **saída** = registro **−2 min** (o armazenamento segue o horário real batido ou digitado). Para reduzir ruído de GPS, pares **consecutivos** (em ordem global) entrada/saída ou saída/entrada com menos de **5 minutos** entre os horários **reais** são omitidos na lista e nos totais/saldo, mas **permanecem** no bin.
 - **Edição manual:** adicionar, editar horário e excluir registros a partir do **modal do dia**; ao adicionar ponto, a data do dia aberto já vem preenchida
 - **Senha de acesso** à página (definida na primeira vez e armazenada no bin)
-- **Deploy no GitHub Pages** com URL pública do Worker injetada por GitHub Secret (`AUTOPONTO_WORKER_URL`); Master Key e Bin ID **não** vão para o bundle do site
+- **Deploy no GitHub Pages** com URL pública do Worker injetada por GitHub Secret (`AUTOPONTO_WORKER_URL`); opcionalmente **outro Worker por hostname** (`AUTOPONTO_WORKER_BY_HOST`, ex.: `a.greiser.dev` → segundo bin/senha/feriados). Master Key e Bin ID **não** vão para o bundle do site
 - **Shortcut no iPhone** para registrar entrada/saída pelo Worker (POST; documentado abaixo)
 
 ## Pré-requisitos
@@ -29,22 +29,34 @@ A Master Key e o Bin ID ficam **apenas** nos secrets do Worker (Wrangler), não 
 
 ## Configurar Secret no GitHub (somente Pages)
 
-O workflow gera `config.js` só com a URL do Worker.
+O workflow gera `config.js` com `WORKER_BASE_URL` e, se existir o secret opcional, `WORKER_BASE_URL_BY_HOST`.
 
 ### 1. Abrir os Secrets do repositório
 
 **Settings** → **Secrets and variables** → **Actions**.
 
-### 2. Criar o secret
+### 2. Criar os secrets
 
-- **Nome:** `AUTOPONTO_WORKER_URL`
-- **Valor:** a URL base do Worker (a mesma usada no atalho iOS, ex.: `https://autoponto-punch.reiser-gui.workers.dev`)
+- **Nome:** `AUTOPONTO_WORKER_URL`  
+  **Valor:** URL base do Worker **principal** (atalho iOS e domínio “padrão”, ex.: `https://autoponto-punch.reiser-gui.workers.dev`), **sem barra no final**.
 
-### 3. Arquivo versionado
+- **Opcional — segundo usuário / outro domínio:** `AUTOPONTO_WORKER_BY_HOST`  
+  **Valor:** JSON **numa única linha** mapeando hostname (minúsculo) → URL do Worker, por exemplo:  
+  `{"a.greiser.dev":"https://outro-worker.seu-subdominio.workers.dev"}`  
+  Quem acessar o mesmo site pelo hostname listado usa esse Worker (e portanto outro bin JSONBin, outra senha e outras configs). Quem acessar por outro host (ex.: `greiser.dev`) usa `AUTOPONTO_WORKER_URL`.
 
-O [`config.template.js`](config.template.js) contém apenas o placeholder `{{WORKER_BASE_URL}}`. Não commite `config.js` nem `config.local.js` com dados reais.
+### 3. DNS e GitHub Pages (ex.: `a.greiser.dev`)
 
-### 4. Rodar o deploy do site
+1. No provedor DNS, crie um registro **CNAME** para `a` apontando para o mesmo destino do Pages que o domínio principal (como na documentação do GitHub para domínios customizados).
+2. No repositório: **Settings** → **Pages** → **Custom domain**, adicione `a.greiser.dev` (além do domínio que já usar). O conteúdo publicado é o **mesmo**; só o hostname muda a escolha do Worker no navegador.
+3. Faça deploy de um **segundo** Worker (mesmo código em `workers/autoponto-punch/`, outro nome no `wrangler.toml` ou outro projeto Cloudflare) com secrets do **segundo** bin; coloque a URL dele no JSON do passo 2.
+4. **Atalho iOS** da segunda pessoa: POST direto na URL do **Worker dela** (não no subdomínio do site), com o `SHORTCUT_TOKEN` desse Worker.
+
+### 4. Arquivo versionado
+
+O [`config.template.js`](config.template.js) é a base usada pelo workflow (placeholders `__WORKER_BASE_URL_JSON__` e `__WORKER_BY_HOST_JSON__`). Não commite `config.js` nem `config.local.js` com dados reais.
+
+### 5. Rodar o deploy do site
 
 Após salvar o secret, o push na `main` gera `config.js` e publica o Pages. **Ordem recomendada:** deploy do Worker (com `SESSION_SECRET`) antes do deploy do site. Em **Settings** → **Pages**, use **Source: GitHub Actions**.
 
@@ -94,7 +106,7 @@ Dois atalhos separados (“Bater entrada” / “Bater saída”) com `type` fix
    ```bash
    cp config.local.example.js config.local.js
    ```
-2. Em `config.local.js`, defina `WORKER_BASE_URL` com a URL do Worker (`wrangler deploy` ou `wrangler dev`).
+2. Em `config.local.js`, defina `WORKER_BASE_URL` e, se precisar testar hostname → Worker, `WORKER_BASE_URL_BY_HOST` (ver [`config.local.example.js`](config.local.example.js)).
 3. Sirva a pasta com um servidor HTTP (evite `file://`). Exemplo:
    ```bash
    python -m http.server 8080
@@ -157,13 +169,13 @@ O `--dry-run` só mostra quantos registros seriam alterados, sem gravar.
 
 1. Faça push do código para a branch `main` (ou a branch configurada no workflow).
 2. Em **Settings** → **Pages**, escolha **Source: GitHub Actions**.
-3. O workflow `Deploy to GitHub Pages` roda a cada push na `main`: gera `config.js` com `AUTOPONTO_WORKER_URL` e publica o site.
+3. O workflow `Deploy to GitHub Pages` roda a cada push na `main`: gera `config.js` com `AUTOPONTO_WORKER_URL` e `AUTOPONTO_WORKER_BY_HOST` (se definido) e publica o site.
 4. O site ficará em `https://<seu-usuario>.github.io/<nome-do-repo>/`.
 
 ---
 
 ## Segurança e limitações
 
-- **Repositório e site:** o bundle publicado no Pages contém só `WORKER_BASE_URL` (pública). Master Key, Bin ID, `SESSION_SECRET` e `SHORTCUT_TOKEN` ficam nos secrets da Cloudflare (Worker).
+- **Repositório e site:** o bundle publicado no Pages contém `WORKER_BASE_URL` e, se configurado, `WORKER_BASE_URL_BY_HOST` (URLs públicas dos Workers). Master Key, Bin ID, `SESSION_SECRET` e `SHORTCUT_TOKEN` ficam nos secrets da Cloudflare (Worker).
 - **Sessão web:** JWT de curta duração (7 dias) em `sessionStorage`; não dá para simular login só alterando `localStorage` como antes.
 - **Riscos residuais:** quem controlar o HTML/JS do site (XSS ou fork malicioso) pode roubar o JWT na sessão. Quem tiver o **SHORTCUT_TOKEN** continua podendo **só adicionar** pontos pelo POST do atalho; não substitui a senha da interface. Não versione tokens; troque se vazarem.

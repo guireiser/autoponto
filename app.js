@@ -5,8 +5,39 @@
   const SESSION_STORAGE_KEY = 'autoponto_session_token';
   const LEGACY_LOGGED_KEY = 'autoponto_logged_in';
 
-  if (!CONFIG || !CONFIG.WORKER_BASE_URL || String(CONFIG.WORKER_BASE_URL).trim() === '') {
-    document.body.innerHTML = '<div class="screen" id="screen-error"><p>Configure <code>config.js</code> ou <code>config.local.js</code> com WORKER_BASE_URL (URL pública do Cloudflare Worker).</p></div>';
+  function nonEmptyString(v) {
+    if (v == null) return '';
+    var s = String(v).trim();
+    return s === '' ? '' : s;
+  }
+
+  function resolveWorkerBaseUrlForPage() {
+    var byHost = CONFIG.WORKER_BASE_URL_BY_HOST;
+    if (!byHost || typeof byHost !== 'object') byHost = {};
+    var host = '';
+    if (typeof location !== 'undefined' && location.hostname) {
+      host = String(location.hostname).toLowerCase();
+    }
+    var mapped = '';
+    if (host && Object.prototype.hasOwnProperty.call(byHost, host)) {
+      mapped = nonEmptyString(byHost[host]);
+    }
+    if (mapped === '' && host.indexOf('www.') === 0) {
+      var stripped = host.slice(4);
+      if (stripped && Object.prototype.hasOwnProperty.call(byHost, stripped)) {
+        mapped = nonEmptyString(byHost[stripped]);
+      }
+    }
+    if (mapped === '') {
+      mapped = nonEmptyString(CONFIG.WORKER_BASE_URL);
+    }
+    return mapped.replace(/\/+$/, '');
+  }
+
+  var RESOLVED_WORKER_BASE_URL = CONFIG ? resolveWorkerBaseUrlForPage() : '';
+
+  if (!CONFIG || RESOLVED_WORKER_BASE_URL === '') {
+    document.body.innerHTML = '<div class="screen" id="screen-error"><p>Configure <code>config.js</code> ou <code>config.local.js</code> com <code>WORKER_BASE_URL</code> e, se usar domínios extras, <code>WORKER_BASE_URL_BY_HOST</code> (URL pública do Cloudflare Worker por hostname).</p></div>';
     return;
   }
 
@@ -15,7 +46,7 @@
   } catch (e) { /* ignore */ }
 
   function workerBaseUrl() {
-    return String(CONFIG.WORKER_BASE_URL).replace(/\/+$/, '');
+    return RESOLVED_WORKER_BASE_URL;
   }
 
   function getSessionToken() {
@@ -1506,7 +1537,7 @@
     const failsafeId = setTimeout(function () {
       if (done) return;
       done = true;
-      showError('O carregamento demorou demais. Verifique sua conexão, se o Worker está no ar e se WORKER_BASE_URL está correto no deploy.');
+      showError('O carregamento demorou demais. Verifique sua conexão, se o Worker está no ar e se a URL do Worker no config está correta para este site.');
     }, FAILSAFE_MS);
     if (loading) loading.classList.add('active');
     showScreen('loading');
@@ -1526,7 +1557,7 @@
             const friendly = msg.includes('Tempo esgotado')
               ? msg
               : (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network')
-                ? 'Não foi possível conectar ao Worker. Verifique a conexão e WORKER_BASE_URL.'
+                ? 'Não foi possível conectar ao Worker. Verifique a conexão e a URL do Worker no config.'
                 : msg || 'Erro ao carregar.');
             showError(friendly);
             return;
@@ -1543,7 +1574,7 @@
       const friendly = msg.includes('Tempo esgotado')
         ? msg
         : (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network')
-          ? 'Não foi possível conectar ao Worker. Verifique a conexão e WORKER_BASE_URL.'
+          ? 'Não foi possível conectar ao Worker. Verifique a conexão e a URL do Worker no config.'
           : msg || 'Erro ao carregar.');
       showError(friendly);
     } finally {

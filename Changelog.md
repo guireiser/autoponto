@@ -2,6 +2,16 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.33] - 2026-03-30
+
+### Adicionado
+
+- **Vários Workers por hostname:** `WORKER_BASE_URL_BY_HOST` no `config.js` (mapa hostname → URL do Worker). O app resolve a URL com base em `location.hostname` (com fallback `www.` → apex) e depois em `WORKER_BASE_URL`. Deploy: secret opcional **`AUTOPONTO_WORKER_BY_HOST`** no GitHub (JSON numa linha, ex.: `{"a.greiser.dev":"https://..."}`). Cada Worker continua com seu próprio bin, senha e feriados.
+
+### Documentação
+
+- README, AGENTS e `workers/autoponto-punch/README.md`: segundo domínio (ex.: `a.greiser.dev`), DNS/Pages e atalho iOS apontando para o Worker correspondente.
+
 ## [1.0.32] - 2026-03-30
 
 ### Alterado
