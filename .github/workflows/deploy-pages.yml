@@ -25,10 +25,18 @@ jobs:
         env:
           AUTOPONTO_WORKER_URL: ${{ secrets.AUTOPONTO_WORKER_URL }}
           AUTOPONTO_WORKER_BY_HOST: ${{ secrets.AUTOPONTO_WORKER_BY_HOST }}
+          AUTOPONTO_WORKER_BY_PATH: ${{ secrets.AUTOPONTO_WORKER_BY_PATH }}
         run: |
           node <<'NODE'
           const fs = require('fs');
           const url = (process.env.AUTOPONTO_WORKER_URL || '').trim();
+          function normalizePathKey(k) {
+            let p = String(k || '').trim();
+            if (!p) return '';
+            if (p.charAt(0) !== '/') p = '/' + p;
+            if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
+            return p === '/' ? '' : p;
+          }
           let byHost = {};
           try {
             const raw = (process.env.AUTOPONTO_WORKER_BY_HOST || '').trim();
@@ -46,9 +54,28 @@ jobs:
           } catch (e) {
             console.warn('AUTOPONTO_WORKER_BY_HOST ignorado (JSON inválido).');
           }
+          let byPath = {};
+          try {
+            const rawP = (process.env.AUTOPONTO_WORKER_BY_PATH || '').trim();
+            if (rawP) {
+              const p = JSON.parse(rawP);
+              if (p && typeof p === 'object' && !Array.isArray(p)) {
+                for (const k of Object.keys(p)) {
+                  const v = p[k];
+                  const pk = normalizePathKey(k);
+                  if (pk && typeof v === 'string' && v.trim() !== '') {
+                    byPath[pk] = v.trim().replace(/\/+$/, '');
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('AUTOPONTO_WORKER_BY_PATH ignorado (JSON inválido).');
+          }
           let tpl = fs.readFileSync('config.template.js', 'utf8');
           tpl = tpl.replace('__WORKER_BASE_URL_JSON__', JSON.stringify(url));
           tpl = tpl.replace('__WORKER_BY_HOST_JSON__', JSON.stringify(byHost));
+          tpl = tpl.replace('__WORKER_BY_PATH_JSON__', JSON.stringify(byPath));
           fs.writeFileSync('config.js', tpl);
           NODE
 
@@ -56,6 +83,7 @@ jobs:
         run: |
           mkdir -p site
           cp index.html app.js config.js styles.css config.json site/
+          cp index.html site/404.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

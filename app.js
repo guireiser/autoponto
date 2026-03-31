@@ -2,7 +2,6 @@
   'use strict';
 
   const CONFIG = window.APP_CONFIG;
-  const SESSION_STORAGE_KEY = 'autoponto_session_token';
   const LEGACY_LOGGED_KEY = 'autoponto_logged_in';
 
   function nonEmptyString(v) {
@@ -11,14 +10,60 @@
     return s === '' ? '' : s;
   }
 
+  function normalizePathPrefix(s) {
+    var p = String(s || '').trim();
+    if (!p) return '';
+    if (p.charAt(0) !== '/') p = '/' + p;
+    if (p.length > 1 && p.charAt(p.length - 1) === '/') p = p.slice(0, -1);
+    return p === '/' ? '' : p;
+  }
+
+  function normalizePathnameForMatch(pathname) {
+    var p = pathname == null || pathname === '' ? '/' : String(pathname);
+    if (p.length > 1 && p.charAt(p.length - 1) === '/') p = p.slice(0, -1);
+    return p;
+  }
+
+  function pathPrefixMatches(pathnameNorm, prefixNorm) {
+    if (!prefixNorm || prefixNorm === '/') return false;
+    if (pathnameNorm === prefixNorm) return true;
+    return pathnameNorm.indexOf(prefixNorm + '/') === 0;
+  }
+
+  function resolveFromPathMap(byPath) {
+    if (!byPath || typeof byPath !== 'object') return '';
+    var pathnameNorm = normalizePathnameForMatch(
+      typeof location !== 'undefined' && location.pathname != null ? location.pathname : '/'
+    );
+    var keys = [];
+    for (var k in byPath) {
+      if (Object.prototype.hasOwnProperty.call(byPath, k)) keys.push(k);
+    }
+    keys.sort(function (a, b) {
+      return b.length - a.length;
+    });
+    for (var i = 0; i < keys.length; i++) {
+      var prefixNorm = normalizePathPrefix(keys[i]);
+      if (!prefixNorm) continue;
+      if (pathPrefixMatches(pathnameNorm, prefixNorm)) {
+        return nonEmptyString(byPath[keys[i]]);
+      }
+    }
+    return '';
+  }
+
   function resolveWorkerBaseUrlForPage() {
+    var mapped = '';
+    mapped = resolveFromPathMap(CONFIG.WORKER_BASE_URL_BY_PATH);
+    if (mapped !== '') {
+      return mapped.replace(/\/+$/, '');
+    }
     var byHost = CONFIG.WORKER_BASE_URL_BY_HOST;
     if (!byHost || typeof byHost !== 'object') byHost = {};
     var host = '';
     if (typeof location !== 'undefined' && location.hostname) {
       host = String(location.hostname).toLowerCase();
     }
-    var mapped = '';
     if (host && Object.prototype.hasOwnProperty.call(byHost, host)) {
       mapped = nonEmptyString(byHost[host]);
     }
@@ -36,8 +81,18 @@
 
   var RESOLVED_WORKER_BASE_URL = CONFIG ? resolveWorkerBaseUrlForPage() : '';
 
+  var SESSION_STORAGE_KEY = (function () {
+    if (!RESOLVED_WORKER_BASE_URL) return 'autoponto_session_token';
+    try {
+      if (typeof btoa === 'function') {
+        return 'autoponto_session_token_' + btoa(RESOLVED_WORKER_BASE_URL).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      }
+    } catch (e) { /* ignore */ }
+    return 'autoponto_session_token';
+  })();
+
   if (!CONFIG || RESOLVED_WORKER_BASE_URL === '') {
-    document.body.innerHTML = '<div class="screen" id="screen-error"><p>Configure <code>config.js</code> ou <code>config.local.js</code> com <code>WORKER_BASE_URL</code> e, se usar domínios extras, <code>WORKER_BASE_URL_BY_HOST</code> (URL pública do Cloudflare Worker por hostname).</p></div>';
+    document.body.innerHTML = '<div class="screen" id="screen-error"><p>Configure <code>config.js</code> ou <code>config.local.js</code> com <code>WORKER_BASE_URL</code> e, se precisar, <code>WORKER_BASE_URL_BY_PATH</code> (prefixo de URL → Worker) ou <code>WORKER_BASE_URL_BY_HOST</code> (hostname → Worker).</p></div>';
     return;
   }
 

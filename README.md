@@ -10,7 +10,7 @@ Aplicativo estático de controle de ponto de trabalho para publicar no GitHub Pa
 - **Cálculo de horas trabalhadas** por dia (soma dos intervalos entre cada par entrada → saída), com agrupamento por data local do navegador (evita deslocamento de dia por UTC). Regra fixa: horário efetivo da **entrada** = registro **+2 min**; da **saída** = registro **−2 min** (o armazenamento segue o horário real batido ou digitado). Para reduzir ruído de GPS, pares **consecutivos** (em ordem global) entrada/saída ou saída/entrada com menos de **5 minutos** entre os horários **reais** são omitidos na lista e nos totais/saldo, mas **permanecem** no bin.
 - **Edição manual:** adicionar, editar horário e excluir registros a partir do **modal do dia**; ao adicionar ponto, a data do dia aberto já vem preenchida
 - **Senha de acesso** à página (definida na primeira vez e armazenada no bin)
-- **Deploy no GitHub Pages** com URL pública do Worker injetada por GitHub Secret (`AUTOPONTO_WORKER_URL`); opcionalmente **outro Worker por hostname** (`AUTOPONTO_WORKER_BY_HOST`, ex.: `a.greiser.dev` → segundo bin/senha/feriados). Master Key e Bin ID **não** vão para o bundle do site
+- **Deploy no GitHub Pages** com URL pública do Worker injetada por GitHub Secret (`AUTOPONTO_WORKER_URL`); opcionalmente **outro Worker por prefixo de URL** (`AUTOPONTO_WORKER_BY_PATH`, ex.: `/a` → segundo bin) ou por hostname (`AUTOPONTO_WORKER_BY_HOST`). Master Key e Bin ID **não** vão para o bundle do site
 - **Shortcut no iPhone** para registrar entrada/saída pelo Worker (POST; documentado abaixo)
 
 ## Pré-requisitos
@@ -29,7 +29,7 @@ A Master Key e o Bin ID ficam **apenas** nos secrets do Worker (Wrangler), não 
 
 ## Configurar Secret no GitHub (somente Pages)
 
-O workflow gera `config.js` com `WORKER_BASE_URL` e, se existir o secret opcional, `WORKER_BASE_URL_BY_HOST`.
+O workflow gera `config.js` com `WORKER_BASE_URL` e, se existirem, `WORKER_BASE_URL_BY_PATH` e `WORKER_BASE_URL_BY_HOST`.
 
 ### 1. Abrir os Secrets do repositório
 
@@ -40,21 +40,23 @@ O workflow gera `config.js` com `WORKER_BASE_URL` e, se existir o secret opciona
 - **Nome:** `AUTOPONTO_WORKER_URL`  
   **Valor:** URL base do Worker **principal** (atalho iOS e domínio “padrão”, ex.: `https://autoponto-punch.reiser-gui.workers.dev`), **sem barra no final**.
 
-- **Opcional — segundo usuário / outro domínio:** `AUTOPONTO_WORKER_BY_HOST`  
-  **Valor:** JSON **numa única linha** mapeando hostname (minúsculo) → URL do Worker, por exemplo:  
-  `{"a.greiser.dev":"https://outro-worker.seu-subdominio.workers.dev"}`  
-  Quem acessar o mesmo site pelo hostname listado usa esse Worker (e portanto outro bin JSONBin, outra senha e outras configs). Quem acessar por outro host (ex.: `greiser.dev`) usa `AUTOPONTO_WORKER_URL`.
+- **Opcional — segundo usuário por caminho (recomendado no GitHub Pages):** `AUTOPONTO_WORKER_BY_PATH`  
+  **Valor:** JSON **numa única linha** mapeando **prefixo de path** → URL do Worker, por exemplo:  
+  `{"/a":"https://outro-worker.seu-subdominio.workers.dev"}`  
+  Se `location.pathname` começar por esse prefixo (comparado sem barra final duplicada; o prefixo mais longo vence), o app usa esse Worker. O site continua em **um** domínio (ex.: `greiser.dev`); a segunda pessoa acessa **`https://greiser.dev/a`** (de preferência **sem** barra no final, para `styles.css` e `app.js` resolverem a partir da raiz do site). Em site de **projeto** no Pages (`usuario.github.io/nome-do-repo/`), use prefixo com o nome do repo, ex.: `"/nome-do-repo/a"`. O deploy copia `index.html` para **`404.html`** no artefato do Pages para o GitHub servir o mesmo app em URLs “inexistentes” como `/a`.
 
-### 3. DNS e GitHub Pages (ex.: `a.greiser.dev`)
+- **Opcional — por hostname:** `AUTOPONTO_WORKER_BY_HOST`  
+  **Valor:** JSON numa linha, hostname (minúsculo) → URL do Worker. Útil se você tiver outro hostname apontando para o mesmo site; no Pages, **apex + outro subdomínio** no mesmo repositório costuma ser limitado — prefira path.
 
-1. No provedor DNS, crie um registro **CNAME** para `a` apontando para o mesmo destino do Pages que o domínio principal (como na documentação do GitHub para domínios customizados).
-2. No repositório: **Settings** → **Pages** → **Custom domain**, adicione `a.greiser.dev` (além do domínio que já usar). O conteúdo publicado é o **mesmo**; só o hostname muda a escolha do Worker no navegador.
-3. Faça deploy de um **segundo** Worker (mesmo código em `workers/autoponto-punch/`, outro nome no `wrangler.toml` ou outro projeto Cloudflare) com secrets do **segundo** bin; coloque a URL dele no JSON do passo 2.
-4. **Atalho iOS** da segunda pessoa: POST direto na URL do **Worker dela** (não no subdomínio do site), com o `SHORTCUT_TOKEN` desse Worker.
+### 3. Segundo Worker e atalho iOS
+
+1. Deploy de um **segundo** Worker (pasta `workers/autoponto-punch-a/` ou outro nome no `wrangler.toml`) com secrets do **segundo** bin.
+2. Coloque a URL dele em `AUTOPONTO_WORKER_BY_PATH` (ou em `AUTOPONTO_WORKER_BY_HOST`).
+3. **Atalho iOS** da segunda pessoa: POST na URL do **Worker dela**, com o `SHORTCUT_TOKEN` desse Worker.
 
 ### 4. Arquivo versionado
 
-O [`config.template.js`](config.template.js) é a base usada pelo workflow (placeholders `__WORKER_BASE_URL_JSON__` e `__WORKER_BY_HOST_JSON__`). Não commite `config.js` nem `config.local.js` com dados reais.
+O [`config.template.js`](config.template.js) é a base usada pelo workflow (placeholders `__WORKER_BASE_URL_JSON__`, `__WORKER_BY_HOST_JSON__`, `__WORKER_BY_PATH_JSON__`). Não commite `config.js` nem `config.local.js` com dados reais.
 
 ### 5. Rodar o deploy do site
 
@@ -169,13 +171,13 @@ O `--dry-run` só mostra quantos registros seriam alterados, sem gravar.
 
 1. Faça push do código para a branch `main` (ou a branch configurada no workflow).
 2. Em **Settings** → **Pages**, escolha **Source: GitHub Actions**.
-3. O workflow `Deploy to GitHub Pages` roda a cada push na `main`: gera `config.js` com `AUTOPONTO_WORKER_URL` e `AUTOPONTO_WORKER_BY_HOST` (se definido) e publica o site.
+3. O workflow `Deploy to GitHub Pages` roda a cada push na `main`: gera `config.js` (secrets `AUTOPONTO_WORKER_URL`, opcionalmente `AUTOPONTO_WORKER_BY_PATH` e `AUTOPONTO_WORKER_BY_HOST`), copia `404.html` (= `index.html`) e publica o site.
 4. O site ficará em `https://<seu-usuario>.github.io/<nome-do-repo>/`.
 
 ---
 
 ## Segurança e limitações
 
-- **Repositório e site:** o bundle publicado no Pages contém `WORKER_BASE_URL` e, se configurado, `WORKER_BASE_URL_BY_HOST` (URLs públicas dos Workers). Master Key, Bin ID, `SESSION_SECRET` e `SHORTCUT_TOKEN` ficam nos secrets da Cloudflare (Worker).
+- **Repositório e site:** o bundle publicado no Pages contém `WORKER_BASE_URL` e, se configurado, `WORKER_BASE_URL_BY_PATH` / `WORKER_BASE_URL_BY_HOST` (URLs públicas dos Workers). Master Key, Bin ID, `SESSION_SECRET` e `SHORTCUT_TOKEN` ficam nos secrets da Cloudflare (Worker). JWT da interface web fica em `sessionStorage` com chave **por URL do Worker**, para `/` e `/a` não trocarem sessão.
 - **Sessão web:** JWT de curta duração (7 dias) em `sessionStorage`; não dá para simular login só alterando `localStorage` como antes.
 - **Riscos residuais:** quem controlar o HTML/JS do site (XSS ou fork malicioso) pode roubar o JWT na sessão. Quem tiver o **SHORTCUT_TOKEN** continua podendo **só adicionar** pontos pelo POST do atalho; não substitui a senha da interface. Não versione tokens; troque se vazarem.

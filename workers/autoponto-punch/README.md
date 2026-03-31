@@ -33,7 +33,7 @@ npx wrangler deploy
 
 Anote a URL exibida (ex.: `https://autoponto-punch.<subdomínio>.workers.dev`). Essa URL deve ir para o secret **`AUTOPONTO_WORKER_URL`** no GitHub (Pages) — URL do Worker “principal” — e para `WORKER_BASE_URL` em `config.local.js` no desenvolvimento local.
 
-**Segundo bin / outro hostname no site (ex.: `a.greiser.dev`):** faça outro deploy (outro nome de serviço no `wrangler.toml`), secrets apontando para o **outro** bin JSONBin, e registre a URL desse Worker no secret opcional **`AUTOPONTO_WORKER_BY_HOST`** do GitHub, por exemplo `{"a.greiser.dev":"https://esse-outro.workers.dev"}`. O atalho iOS dessa pessoa continua usando a URL do **Worker** dela, não a do site.
+**Segundo bin / mesma URL do site:** faça outro deploy (ex.: pasta `autoponto-punch-a`), secrets do **outro** bin, e no GitHub use o secret opcional **`AUTOPONTO_WORKER_BY_PATH`**, por exemplo `{"/a":"https://esse-outro.workers.dev"}`, para quem abrir `https://seu-dominio/a` usar o segundo Worker. Alternativa: **`AUTOPONTO_WORKER_BY_HOST`** se outro hostname apontar para o Pages. O atalho iOS usa sempre a URL **pública do Worker**, não o path do site.
 
 ### URL em produção (deploy deste projeto)
 

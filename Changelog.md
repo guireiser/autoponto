@@ -2,6 +2,17 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.34] - 2026-03-30
+
+### Adicionado
+
+- **Roteamento por path:** `WORKER_BASE_URL_BY_PATH` (mapa prefixo de `location.pathname` → URL do Worker; prefixo mais longo ganha). Ordem de resolução: path → hostname → `WORKER_BASE_URL`. Secret GitHub opcional **`AUTOPONTO_WORKER_BY_PATH`** (JSON numa linha, ex.: `{"/a":"https://..."}`). Adequado ao GitHub Pages com um único custom domain (ex.: `greiser.dev/a`). O workflow publica **`404.html`** (= `index.html`) para o Pages servir o app em paths sem arquivo físico.
+- **Sessão:** chave de `sessionStorage` inclui identificador derivado da URL do Worker, para não reutilizar JWT entre instâncias (ex.: `/` vs `/a`).
+
+### Documentação
+
+- README, AGENTS e README do worker: path vs host, `404.html`, atalho iOS.
+
 ## [1.0.33] - 2026-03-30
 
 ### Adicionado
