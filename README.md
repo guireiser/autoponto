@@ -5,7 +5,7 @@ Aplicativo estático de controle de ponto de trabalho para publicar no GitHub Pa
 ## Funcionalidades
 
 - **Calendário mensal** com **prévia dos pontos** no card (sem editar no card), totais por dia, título **Mês/Ano** (ex.: Março/2026) e **botão no topo do dia** (número, chevron) que abre o modal com edição, **+ Ponto** e **comentário do dia** (texto do comentário só no modal; ícone 💬 no botão se houver comentário — `config.dayComments`). Ao lado de cada horário, **ícones de origem**: seta azul para batidas do **atalho** (`source: 'gps'`), lápis para inclusão pela **web** ou após **edição** (`source: 'manual'` ou `editedInApp`). Em telas estreitas a grade permite **rolagem horizontal** para manter largura mínima dos cards
-- **Total de horas por dia** (rótulo "Total:" em cada dia), **Saldo:** cumulativo ao fim daquele dia (em hoje e dias futuros mostra **—**), **total do mês** e **saldo até ontem** na barra (mesma regra de cálculo; padrão: +4h56 antes de 2026-03-23; seg–qui 9h, sex 8h, fim de semana 0 — ver `config.balance` no bin). Em **domingo**, **feriado ativo** ou **dia dentro de um período de férias** cadastrado, as horas trabalhadas entram **em dobro** só no cálculo do saldo (o "Total:" do dia continua sendo o tempo real).
+- **Total de horas por dia** (rótulo "Total:" em cada dia), **Saldo:** cumulativo ao fim daquele dia (em hoje e dias futuros mostra **—**), **total do mês** e **saldo até ontem** na barra (mesma regra de cálculo; padrão: +4h56 antes de 2026-03-23; seg–qui 9h, sex 8h, fim de semana 0 — ver `config.balance` no bin). Em **domingo**, **feriado ativo** ou **dia dentro de um período de férias** cadastrado, as horas trabalhadas entram **em dobro** só no cálculo do saldo (o "Total:" do dia continua sendo o tempo real). Nesses dias **premium**, se **não** houver horas contáveis, **não** há desconto da meta do dia no saldo (dia “neutro”).
 - **Feriados:** lista nacional com feriados fixos e móveis (**2026–2032**, Carnaval, Sexta Santa e Corpus Christi por Páscoa gregoriana; desative os que forem só ponto facultativo na aba **Feriados**, com filtro por ano, **padrão = ano atual**). Feriados manuais e restaurar / ignorar nacionais (`config.holidaysExtra`, `config.holidaysRemoved`). **Férias:** períodos com início e fim (`config.vacations`); cada dia do intervalo se comporta como feriado (visual, rótulo e dobro no saldo). Dias feriado ou de férias aparecem com estilo distinto no calendário e com o **nome** no card do dia.
 - **Cálculo de horas trabalhadas** por dia (soma dos intervalos entre cada par entrada → saída), com agrupamento por data local do navegador (evita deslocamento de dia por UTC). Regra fixa: horário efetivo da **entrada** = registro **+2 min**; da **saída** = registro **−2 min** (o armazenamento segue o horário real batido ou digitado). Para reduzir ruído de GPS, pares **consecutivos** (em ordem global) entrada/saída ou saída/entrada com menos de **5 minutos** entre os horários **reais** são omitidos na lista e nos totais/saldo, mas **permanecem** no bin.
 - **Edição manual:** adicionar, editar horário e excluir registros a partir do **modal do dia**; ao adicionar ponto, a data do dia aberto já vem preenchida
@@ -99,6 +99,63 @@ Resposta em caso de sucesso: `{ "ok": true, "type": "...", "datetime": "...", "s
 Dois atalhos separados (“Bater entrada” / “Bater saída”) com `type` fixo dispensam o passo opcional de data e qualquer pergunta. Para **quatro** atalhos (entrada GPS, saída GPS, entrada manual, saída manual), os dois manuais repetem o passo 2 com `source` ou `manual` como acima.
 
 **Limite:** dois registros quase simultâneos podem competir (GET → PUT no JSONBin); para uso pessoal é raro.
+
+---
+
+## Automação no Android (equivalente ao Atalhos) — geofence do usuário 2 (`greiser.dev/a`)
+
+No Android, o equivalente ao fluxo do iOS "When I arrive / When I leave" pode ser feito com **MacroDroid** (recomendado) ou **Tasker**, usando gatilho de **geofence**.
+
+### Importante (site x Worker)
+
+- A URL `https://greiser.dev/a` é a **interface web** do segundo usuário.
+- A automação (entrada/saída) precisa fazer **POST na URL do Worker do segundo usuário** (o valor de `"/a"` em `AUTOPONTO_WORKER_BY_PATH`), e não no site.
+- Use a URL base do Worker com `/` ou `/punch` (mesmo comportamento).
+
+### Pré-requisitos no Android
+
+- App de automação instalado (**MacroDroid** ou **Tasker**).
+- Permissão de localização em **"Permitir o tempo todo"** para o app de automação.
+- Localização do aparelho ligada (preferencialmente em alta precisão).
+- Sem restrição agressiva de bateria para o app de automação (para não perder eventos de entrada/saída).
+
+### Passo a passo (MacroDroid com geofence)
+
+1. Instale o **MacroDroid** na Play Store.
+2. Separe os dados do usuário 2:
+   - `WORKER_URL_A` (ex.: `https://autoponto-punch-a.seu-subdominio.workers.dev/punch`)
+   - `SHORTCUT_TOKEN_A` (secret do Worker dele)
+3. Crie a macro **Entrada por geofence**:
+   - **Gatilho:** Localização -> **Entrar em área geográfica** (ou nome equivalente da versão do app).
+   - **Área:** selecione no mapa o local do trabalho.
+   - **Raio inicial sugerido:** 120 m a 200 m (ajuste conforme estabilidade do GPS no local).
+   - **Ação HTTP:** `POST` para `WORKER_URL_A`.
+   - **Header:** `Authorization: Bearer SHORTCUT_TOKEN_A` (ou `X-Autoponto-Token: SHORTCUT_TOKEN_A`).
+   - **Body JSON:** `{"type":"entrada"}`.
+   - **Content-Type:** `application/json`.
+4. Crie a macro **Saída por geofence**:
+   - **Gatilho:** Localização -> **Sair da área geográfica** na mesma área configurada.
+   - **Ação HTTP:** `POST` para `WORKER_URL_A`.
+   - **Header:** igual ao da entrada.
+   - **Body JSON:** `{"type":"saída"}`.
+5. Evite duplicidades:
+   - Configure intervalo mínimo entre execuções (ex.: 5-10 min) se o app oferecer essa opção.
+   - Opcional: adicione notificação local de sucesso/erro para auditoria rápida.
+6. Teste controlado:
+   - Simule chegada e saída da área (ou use o modo de teste do app).
+   - Abra `https://greiser.dev/a` e confirme se os pontos apareceram corretamente.
+
+### Observação importante sobre geofence
+
+- A regra de geofence fica no **app de automação do Android** (cliente).
+- O Worker grava o ponto recebido com token válido; ele **não** valida coordenada, raio ou mapa no backend.
+
+### Contrato HTTP (igual ao iOS)
+
+- **POST** `/` ou `/punch`
+- Header: `Authorization: Bearer <SHORTCUT_TOKEN>` ou `X-Autoponto-Token: <SHORTCUT_TOKEN>`
+- JSON: `type` (`entrada` ou `saída`/`saida`), `datetime` opcional (ISO), `source: "manual"` ou `manual: true` opcional
+- Resposta de sucesso: `{ "ok": true, "type": "...", "datetime": "...", "source": "gps" | "manual" }`
 
 ---
 

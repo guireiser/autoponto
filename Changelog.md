@@ -2,6 +2,12 @@
 
 Alterações notáveis do projeto. A versão do app está em `config.json` (campo `version`).
 
+## [1.0.35] - 2026-04-06
+
+### Corrigido
+
+- **Saldo:** em **feriado ativo**, **dia de férias** ou **domingo**, quando **não há minutos trabalhados** contáveis (sem batidas ou só ruído de GPS omitido), **não** se aplica a meta diária (8h/9h) como débito no saldo — o dia não altera o acumulado. Com batidas, o comportamento anterior permanece (horas em dobro no saldo onde aplicável, menos a meta do dia útil).
+
 ## [1.0.34] - 2026-03-30
 
 ### Adicionado
@@ -12,6 +18,7 @@ Alterações notáveis do projeto. A versão do app está em `config.json` (camp
 ### Documentação
 
 - README, AGENTS e README do worker: path vs host, `404.html`, atalho iOS.
+- README e AGENTS: manual de automação no Android por **geofence** (entrar/sair da área, equivalente ao "When I arrive/leave" do iOS) para o segundo usuário em `greiser.dev/a`, destacando uso da URL do Worker mapeada em `AUTOPONTO_WORKER_BY_PATH`.
 
 ## [1.0.33] - 2026-03-30
 

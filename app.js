@@ -673,6 +673,7 @@
       var dayForBalance = dayAll.filter(function (r) { return !gpsNoiseIds[getRecordId(r)]; });
       var rawWorked = minutesWorkedInDay(dayForBalance);
       var premium = isPremiumBalanceDay(cur, d, holidayMap);
+      if (premium && rawWorked === 0) expected = 0;
       var effectiveWorked = premium ? rawWorked * 2 : rawWorked;
       total += effectiveWorked - expected;
       var next = addOneDayToDateKey(cur);
@@ -1155,7 +1156,7 @@
 
     container.innerHTML = `
       <div class="holidays-page">
-        <p class="holidays-intro">Feriados nacionais e móveis do calendário brasileiro (${BR_NATIONAL_HOLIDAY_YEAR_FIRST}–${BR_NATIONAL_HOLIDAY_YEAR_LAST}) vêm do app; use <strong>Não considerar</strong> se não se aplicam (ex.: ponto facultativo). <strong>Férias</strong> são períodos (data inicial e final): cada dia do intervalo se comporta como feriado no saldo. Horas em <strong>domingo</strong>, <strong>feriado ativo</strong> ou <strong>dia de férias</strong> contam em <strong>dobro</strong> só no saldo.</p>
+        <p class="holidays-intro">Feriados nacionais e móveis do calendário brasileiro (${BR_NATIONAL_HOLIDAY_YEAR_FIRST}–${BR_NATIONAL_HOLIDAY_YEAR_LAST}) vêm do app; use <strong>Não considerar</strong> se não se aplicam (ex.: ponto facultativo). <strong>Férias</strong> são períodos (data inicial e final): cada dia do intervalo se comporta como feriado no saldo. Horas em <strong>domingo</strong>, <strong>feriado ativo</strong> ou <strong>dia de férias</strong> contam em <strong>dobro</strong> só no saldo; <strong>sem</strong> batidas contáveis nesses dias, o saldo <strong>não</strong> sofre o desconto da meta do dia útil.</p>
         <p><button type="button" id="btn-add-holiday" class="btn-primary">Adicionar feriado manual</button>
         <button type="button" id="btn-add-vacation" class="btn-primary">Adicionar férias</button></p>
         <h3 class="holidays-section-title">Nacionais</h3>
